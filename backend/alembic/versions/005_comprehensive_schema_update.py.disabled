@@ -1,0 +1,580 @@
+"""Comprehensive schema update to match Excel database design
+
+Revision ID: 005_comprehensive
+Revises: 004_billing
+Create Date: 2026-04-28
+
+"""
+from alembic import op
+import sqlalchemy as sa
+from sqlalchemy.dialects import postgresql
+import uuid
+
+# revision identifiers, used by Alembic.
+revision = '005_comprehensive'
+down_revision = '004_billing'
+branch_labels = None
+depends_on = None
+
+
+def upgrade():
+    # ─── Company ────────────────────────────────────────────────────────────
+    op.create_table(
+        'company',
+        sa.Column('company_id', postgresql.UUID(as_uuid=True), primary_key=True, default=uuid.uuid4),
+        sa.Column('owner_id', sa.Integer, sa.ForeignKey('user.user_id'), nullable=False, index=True),
+        sa.Column('company_code', sa.String(20), nullable=False, unique=True),
+        sa.Column('company_name', sa.String(200), nullable=False, index=True),
+        sa.Column('email', sa.String(150)),
+        sa.Column('phone', sa.String(20)),
+        sa.Column('address_line1', sa.String(200)),
+        sa.Column('address_line2', sa.String(200)),
+        sa.Column('city', sa.String(100)),
+        sa.Column('state', sa.String(100)),
+        sa.Column('pincode', sa.String(10)),
+        sa.Column('country', sa.String(100), default='India'),
+        sa.Column('pan', sa.String(10)),
+        sa.Column('gstin', sa.String(15)),
+        sa.Column('cin', sa.String(21)),
+        sa.Column('status', sa.String(20), nullable=False, default='ACTIVE'),
+        sa.Column('description', sa.Text),
+        sa.Column('logo_url', sa.String(500)),
+        sa.Column('website', sa.String(200)),
+        sa.Column('extra_data', postgresql.JSONB, default={}),
+        sa.Column('created_at', sa.DateTime(timezone=True), nullable=False, server_default=sa.func.now()),
+        sa.Column('updated_at', sa.DateTime(timezone=True), nullable=False, server_default=sa.func.now()),
+        sa.Column('is_deleted', sa.Boolean, nullable=False, default=False)
+    )
+
+    # ─── Company Branch ─────────────────────────────────────────────────────
+    op.create_table(
+        'company_branch',
+        sa.Column('branch_id', postgresql.UUID(as_uuid=True), primary_key=True, default=uuid.uuid4),
+        sa.Column('company_id', postgresql.UUID(as_uuid=True), sa.ForeignKey('company.company_id'), nullable=False, index=True),
+        sa.Column('manager_id', sa.Integer, sa.ForeignKey('user.user_id')),
+        sa.Column('branch_name', sa.String(200), nullable=False, index=True),
+        sa.Column('branch_code', sa.String(20), nullable=False),
+        sa.Column('email', sa.String(150)),
+        sa.Column('phone', sa.String(20)),
+        sa.Column('address_line1', sa.String(200)),
+        sa.Column('address_line2', sa.String(200)),
+        sa.Column('city', sa.String(100)),
+        sa.Column('state', sa.String(100)),
+        sa.Column('pincode', sa.String(10)),
+        sa.Column('country', sa.String(100), default='India'),
+        sa.Column('is_head_office', sa.Boolean, nullable=False, default=False),
+        sa.Column('status', sa.String(20), nullable=False, default='ACTIVE'),
+        sa.Column('created_at', sa.DateTime(timezone=True), nullable=False, server_default=sa.func.now()),
+        sa.Column('updated_at', sa.DateTime(timezone=True), nullable=False, server_default=sa.func.now()),
+        sa.Column('is_deleted', sa.Boolean, nullable=False, default=False)
+    )
+
+    # ─── Company Role ───────────────────────────────────────────────────────
+    op.create_table(
+        'company_role',
+        sa.Column('role_id', postgresql.UUID(as_uuid=True), primary_key=True, default=uuid.uuid4),
+        sa.Column('company_id', postgresql.UUID(as_uuid=True), sa.ForeignKey('company.company_id'), nullable=False, index=True),
+        sa.Column('role_name', sa.String(50), nullable=False),
+        sa.Column('description', sa.Text),
+        sa.Column('permissions', postgresql.JSONB, default={}),
+        sa.Column('created_at', sa.DateTime(timezone=True), nullable=False, server_default=sa.func.now()),
+        sa.Column('updated_at', sa.DateTime(timezone=True), nullable=False, server_default=sa.func.now())
+    )
+
+    # ─── Company User ───────────────────────────────────────────────────────
+    op.create_table(
+        'company_user',
+        sa.Column('company_user_id', postgresql.UUID(as_uuid=True), primary_key=True, default=uuid.uuid4),
+        sa.Column('company_id', postgresql.UUID(as_uuid=True), sa.ForeignKey('company.company_id'), nullable=False, index=True),
+        sa.Column('user_id', sa.Integer, sa.ForeignKey('user.user_id'), nullable=False, index=True),
+        sa.Column('role_id', postgresql.UUID(as_uuid=True), sa.ForeignKey('company_role.role_id'), nullable=False),
+        sa.Column('branch_id', postgresql.UUID(as_uuid=True), sa.ForeignKey('company_branch.branch_id')),
+        sa.Column('status', sa.String(20), nullable=False, default='ACTIVE'),
+        sa.Column('invited_at', sa.DateTime(timezone=True)),
+        sa.Column('joined_at', sa.DateTime(timezone=True)),
+        sa.Column('invite_token', sa.String(500)),
+        sa.Column('invite_token_expires_at', sa.DateTime(timezone=True)),
+        sa.Column('created_at', sa.DateTime(timezone=True), nullable=False, server_default=sa.func.now()),
+        sa.Column('updated_at', sa.DateTime(timezone=True), nullable=False, server_default=sa.func.now()),
+        sa.Column('is_deleted', sa.Boolean, nullable=False, default=False)
+    )
+
+    # ─── Company Client ─────────────────────────────────────────────────────
+    op.create_table(
+        'company_client',
+        sa.Column('client_id', postgresql.UUID(as_uuid=True), primary_key=True, default=uuid.uuid4),
+        sa.Column('company_id', postgresql.UUID(as_uuid=True), sa.ForeignKey('company.company_id'), nullable=False, index=True),
+        sa.Column('user_id', sa.Integer, sa.ForeignKey('user.user_id')),
+        sa.Column('client_name', sa.String(200), nullable=False, index=True),
+        sa.Column('client_code', sa.String(20), nullable=False),
+        sa.Column('email', sa.String(150)),
+        sa.Column('phone', sa.String(20)),
+        sa.Column('alternate_phone', sa.String(20)),
+        sa.Column('whatsapp', sa.String(20)),
+        sa.Column('address_line1', sa.String(200)),
+        sa.Column('address_line2', sa.String(200)),
+        sa.Column('city', sa.String(100)),
+        sa.Column('state', sa.String(100)),
+        sa.Column('pincode', sa.String(10)),
+        sa.Column('country', sa.String(100), default='India'),
+        sa.Column('pan', sa.String(10)),
+        sa.Column('gstin', sa.String(15)),
+        sa.Column('cin', sa.String(21)),
+        sa.Column('client_type', sa.String(50)),
+        sa.Column('status', sa.String(20), nullable=False, default='ACTIVE'),
+        sa.Column('assigned_manager_id', sa.Integer, sa.ForeignKey('user.user_id')),
+        sa.Column('created_at', sa.DateTime(timezone=True), nullable=False, server_default=sa.func.now()),
+        sa.Column('updated_at', sa.DateTime(timezone=True), nullable=False, server_default=sa.func.now()),
+        sa.Column('is_deleted', sa.Boolean, nullable=False, default=False)
+    )
+
+    # ─── Client Documents ────────────────────────────────────────────────────
+    op.create_table(
+        'client_documents',
+        sa.Column('client_doc_id', postgresql.UUID(as_uuid=True), primary_key=True, default=uuid.uuid4),
+        sa.Column('customer_id', sa.Integer, sa.ForeignKey('customer.customer_id'), nullable=False, index=True),
+        sa.Column('company_id', postgresql.UUID(as_uuid=True), sa.ForeignKey('customer_companies.company_id'), index=True),
+        sa.Column('tenant_id', sa.Integer, sa.ForeignKey('tenant.tenant_id'), nullable=False, index=True),
+        sa.Column('document_type', sa.String(50), nullable=False),
+        sa.Column('document_number', sa.String(50), index=True),
+        sa.Column('document_name', sa.String(200), nullable=False),
+        sa.Column('url', sa.String(500), nullable=False),
+        sa.Column('size_kb', sa.Integer),
+        sa.Column('issue_date', sa.Date),
+        sa.Column('expiry_date', sa.Date),
+        sa.Column('verified_by', sa.Integer, sa.ForeignKey('user.user_id')),
+        sa.Column('verified_at', sa.DateTime(timezone=True)),
+        sa.Column('status', sa.String(20), nullable=False, default='Active'),
+        sa.Column('remarks', sa.String(300)),
+        sa.Column('created_at', sa.DateTime(timezone=True), nullable=False, server_default=sa.func.now())
+    )
+
+    # ─── Customer Events ─────────────────────────────────────────────────────
+    op.create_table(
+        'customer_events',
+        sa.Column('event_id', postgresql.UUID(as_uuid=True), primary_key=True, default=uuid.uuid4),
+        sa.Column('customer_id', sa.Integer, sa.ForeignKey('customer.customer_id'), nullable=False, index=True),
+        sa.Column('tenant_id', sa.Integer, sa.ForeignKey('tenant.tenant_id'), nullable=False, index=True),
+        sa.Column('event_type', sa.String(20), nullable=False),
+        sa.Column('event_date', sa.Date, nullable=False, index=True),
+        sa.Column('recurring_yearly', sa.Boolean, nullable=False, default=True),
+        sa.Column('last_triggered_year', sa.Integer),
+        sa.Column('is_active', sa.Boolean, nullable=False, default=True),
+        sa.Column('created_at', sa.DateTime(timezone=True), nullable=False, server_default=sa.func.now())
+    )
+
+    # ─── Email Templates ─────────────────────────────────────────────────────
+    op.create_table(
+        'email_templates',
+        sa.Column('template_id', postgresql.UUID(as_uuid=True), primary_key=True, default=uuid.uuid4),
+        sa.Column('tenant_id', sa.Integer, sa.ForeignKey('tenant.tenant_id'), nullable=False, index=True),
+        sa.Column('template_name', sa.String(150), nullable=False),
+        sa.Column('template_code', sa.String(50), nullable=False, unique=True),
+        sa.Column('subject', sa.String(300), nullable=False),
+        sa.Column('body_html', sa.Text, nullable=False),
+        sa.Column('variables_json', postgresql.JSONB),
+        sa.Column('category', sa.String(50)),
+        sa.Column('is_active', sa.Boolean, nullable=False, default=True),
+        sa.Column('created_at', sa.DateTime(timezone=True), nullable=False, server_default=sa.func.now())
+    )
+
+    # ─── WhatsApp Templates ──────────────────────────────────────────────────
+    op.create_table(
+        'wa_templates',
+        sa.Column('wa_template_id', postgresql.UUID(as_uuid=True), primary_key=True, default=uuid.uuid4),
+        sa.Column('tenant_id', sa.Integer, sa.ForeignKey('tenant.tenant_id'), nullable=False, index=True),
+        sa.Column('template_name', sa.String(150), nullable=False),
+        sa.Column('template_code', sa.String(50), nullable=False, unique=True),
+        sa.Column('language', sa.String(10), nullable=False, default='en'),
+        sa.Column('category', sa.String(30), nullable=False),
+        sa.Column('header_type', sa.String(20)),
+        sa.Column('header_content', sa.String(300)),
+        sa.Column('body_text', sa.Text, nullable=False),
+        sa.Column('footer_text', sa.String(300)),
+        sa.Column('buttons_json', postgresql.JSONB),
+        sa.Column('provider_template_id', sa.String(100)),
+        sa.Column('status', sa.String(20), nullable=False, default='PENDING'),
+        sa.Column('created_at', sa.DateTime(timezone=True), nullable=False, server_default=sa.func.now())
+    )
+
+    # ─── Customer Event Notifications ────────────────────────────────────────
+    op.create_table(
+        'customer_event_notifications',
+        sa.Column('notification_id', postgresql.UUID(as_uuid=True), primary_key=True, default=uuid.uuid4),
+        sa.Column('event_id', postgresql.UUID(as_uuid=True), sa.ForeignKey('customer_events.event_id'), nullable=False, index=True),
+        sa.Column('customer_id', sa.Integer, sa.ForeignKey('customer.customer_id'), nullable=False, index=True),
+        sa.Column('tenant_id', sa.Integer, sa.ForeignKey('tenant.tenant_id'), nullable=False, index=True),
+        sa.Column('channel', sa.String(20), nullable=False),
+        sa.Column('template_id', postgresql.UUID(as_uuid=True), sa.ForeignKey('email_templates.template_id')),
+        sa.Column('wa_template_id', postgresql.UUID(as_uuid=True), sa.ForeignKey('wa_templates.wa_template_id')),
+        sa.Column('scheduled_at', sa.DateTime(timezone=True), nullable=False),
+        sa.Column('sent_at', sa.DateTime(timezone=True)),
+        sa.Column('status', sa.String(20), nullable=False, default='Pending'),
+        sa.Column('created_at', sa.DateTime(timezone=True), nullable=False, server_default=sa.func.now())
+    )
+
+    # ─── Email Queue ─────────────────────────────────────────────────────────
+    op.create_table(
+        'email_queue',
+        sa.Column('queue_id', postgresql.UUID(as_uuid=True), primary_key=True, default=uuid.uuid4),
+        sa.Column('tenant_id', sa.Integer, sa.ForeignKey('tenant.tenant_id'), nullable=False, index=True),
+        sa.Column('template_id', postgresql.UUID(as_uuid=True), sa.ForeignKey('email_templates.template_id'), index=True),
+        sa.Column('from_email', sa.String(150), nullable=False),
+        sa.Column('to_email', sa.String(500), nullable=False, index=True),
+        sa.Column('cc', sa.String(500)),
+        sa.Column('bcc', sa.String(500)),
+        sa.Column('subject', sa.String(300), nullable=False),
+        sa.Column('body_html', sa.Text, nullable=False),
+        sa.Column('priority', sa.String(10), nullable=False, default='NORMAL'),
+        sa.Column('scheduled_at', sa.DateTime(timezone=True), index=True),
+        sa.Column('sent_at', sa.DateTime(timezone=True)),
+        sa.Column('status', sa.String(20), nullable=False, default='Queued', index=True),
+        sa.Column('retry_count', sa.Integer, nullable=False, default=0),
+        sa.Column('error_message', sa.String(500)),
+        sa.Column('created_at', sa.DateTime(timezone=True), nullable=False, server_default=sa.func.now())
+    )
+
+    # ─── Email Logs ──────────────────────────────────────────────────────────
+    op.create_table(
+        'email_logs',
+        sa.Column('log_id', postgresql.UUID(as_uuid=True), primary_key=True, default=uuid.uuid4),
+        sa.Column('queue_id', postgresql.UUID(as_uuid=True), sa.ForeignKey('email_queue.queue_id'), nullable=False, index=True),
+        sa.Column('tenant_id', sa.Integer, sa.ForeignKey('tenant.tenant_id'), nullable=False, index=True),
+        sa.Column('to_email', sa.String(500), nullable=False),
+        sa.Column('subject', sa.String(300), nullable=False),
+        sa.Column('sent_at', sa.DateTime(timezone=True), index=True),
+        sa.Column('status', sa.String(20), nullable=False),
+        sa.Column('provider_response', sa.String(500)),
+        sa.Column('opened_at', sa.DateTime(timezone=True)),
+        sa.Column('clicked_at', sa.DateTime(timezone=True)),
+        sa.Column('created_at', sa.DateTime(timezone=True), nullable=False, server_default=sa.func.now())
+    )
+
+    # ─── Email Schedulers ────────────────────────────────────────────────────
+    op.create_table(
+        'email_schedulers',
+        sa.Column('scheduler_id', postgresql.UUID(as_uuid=True), primary_key=True, default=uuid.uuid4),
+        sa.Column('tenant_id', sa.Integer, sa.ForeignKey('tenant.tenant_id'), nullable=False, index=True),
+        sa.Column('template_id', postgresql.UUID(as_uuid=True), sa.ForeignKey('email_templates.template_id'), nullable=False, index=True),
+        sa.Column('trigger_type', sa.String(20), nullable=False),
+        sa.Column('trigger_event', sa.String(50)),
+        sa.Column('cron_expression', sa.String(50)),
+        sa.Column('recipient_type', sa.String(30), nullable=False),
+        sa.Column('recipient_filter', postgresql.JSONB),
+        sa.Column('is_active', sa.Boolean, nullable=False, default=True),
+        sa.Column('last_run_at', sa.DateTime(timezone=True)),
+        sa.Column('next_run_at', sa.DateTime(timezone=True)),
+        sa.Column('created_at', sa.DateTime(timezone=True), nullable=False, server_default=sa.func.now())
+    )
+
+    # Continue with remaining tables in next part...
+
+    # ─── WhatsApp Queue ──────────────────────────────────────────────────────
+    op.create_table(
+        'wa_queue',
+        sa.Column('wa_queue_id', postgresql.UUID(as_uuid=True), primary_key=True, default=uuid.uuid4),
+        sa.Column('tenant_id', sa.Integer, sa.ForeignKey('tenant.tenant_id'), nullable=False, index=True),
+        sa.Column('wa_template_id', postgresql.UUID(as_uuid=True), sa.ForeignKey('wa_templates.wa_template_id'), nullable=False, index=True),
+        sa.Column('to_phone', sa.String(20), nullable=False, index=True),
+        sa.Column('variables_json', postgresql.JSONB),
+        sa.Column('media_url', sa.String(500)),
+        sa.Column('priority', sa.String(10), nullable=False, default='NORMAL'),
+        sa.Column('scheduled_at', sa.DateTime(timezone=True), index=True),
+        sa.Column('sent_at', sa.DateTime(timezone=True)),
+        sa.Column('status', sa.String(20), nullable=False, default='Queued', index=True),
+        sa.Column('wa_message_id', sa.String(100)),
+        sa.Column('error_code', sa.String(20)),
+        sa.Column('error_message', sa.String(300)),
+        sa.Column('created_at', sa.DateTime(timezone=True), nullable=False, server_default=sa.func.now())
+    )
+
+    # ─── WhatsApp Logs ───────────────────────────────────────────────────────
+    op.create_table(
+        'wa_logs',
+        sa.Column('wa_log_id', postgresql.UUID(as_uuid=True), primary_key=True, default=uuid.uuid4),
+        sa.Column('wa_queue_id', postgresql.UUID(as_uuid=True), sa.ForeignKey('wa_queue.wa_queue_id'), nullable=False, index=True),
+        sa.Column('tenant_id', sa.Integer, sa.ForeignKey('tenant.tenant_id'), nullable=False, index=True),
+        sa.Column('to_phone', sa.String(20), nullable=False),
+        sa.Column('wa_message_id', sa.String(100), index=True),
+        sa.Column('sent_at', sa.DateTime(timezone=True)),
+        sa.Column('delivered_at', sa.DateTime(timezone=True)),
+        sa.Column('read_at', sa.DateTime(timezone=True)),
+        sa.Column('status', sa.String(20), nullable=False),
+        sa.Column('provider_response', postgresql.JSONB),
+        sa.Column('created_at', sa.DateTime(timezone=True), nullable=False, server_default=sa.func.now())
+    )
+
+    # ─── WhatsApp Schedulers ─────────────────────────────────────────────────
+    op.create_table(
+        'wa_schedulers',
+        sa.Column('scheduler_id', postgresql.UUID(as_uuid=True), primary_key=True, default=uuid.uuid4),
+        sa.Column('tenant_id', sa.Integer, sa.ForeignKey('tenant.tenant_id'), nullable=False, index=True),
+        sa.Column('wa_template_id', postgresql.UUID(as_uuid=True), sa.ForeignKey('wa_templates.wa_template_id'), nullable=False, index=True),
+        sa.Column('trigger_type', sa.String(20), nullable=False),
+        sa.Column('trigger_event', sa.String(50)),
+        sa.Column('cron_expression', sa.String(50)),
+        sa.Column('recipient_type', sa.String(30), nullable=False),
+        sa.Column('recipient_filter', postgresql.JSONB),
+        sa.Column('is_active', sa.Boolean, nullable=False, default=True),
+        sa.Column('last_run_at', sa.DateTime(timezone=True)),
+        sa.Column('next_run_at', sa.DateTime(timezone=True)),
+        sa.Column('created_at', sa.DateTime(timezone=True), nullable=False, server_default=sa.func.now())
+    )
+
+    # ─── CA Plans ────────────────────────────────────────────────────────────
+    op.create_table(
+        'ca_plans',
+        sa.Column('ca_plan_id', postgresql.UUID(as_uuid=True), primary_key=True, default=uuid.uuid4),
+        sa.Column('plan_name', sa.String(100), nullable=False),
+        sa.Column('plan_code', sa.String(30), nullable=False, unique=True),
+        sa.Column('description', sa.String(300)),
+        sa.Column('price_monthly', sa.Numeric(12, 2), nullable=False),
+        sa.Column('price_yearly', sa.Numeric(12, 2), nullable=False),
+        sa.Column('gst_pct', sa.Numeric(5, 2), nullable=False, default=18.00),
+        sa.Column('max_clients', sa.Integer, nullable=False),
+        sa.Column('max_users', sa.Integer, nullable=False),
+        sa.Column('max_storage_gb', sa.Integer, nullable=False),
+        sa.Column('features_json', postgresql.JSONB),
+        sa.Column('is_active', sa.Boolean, nullable=False, default=True),
+        sa.Column('created_at', sa.DateTime(timezone=True), nullable=False, server_default=sa.func.now())
+    )
+
+    # ─── CA Subscriptions ────────────────────────────────────────────────────
+    op.create_table(
+        'ca_subscriptions',
+        sa.Column('ca_sub_id', postgresql.UUID(as_uuid=True), primary_key=True, default=uuid.uuid4),
+        sa.Column('tenant_id', sa.Integer, sa.ForeignKey('tenant.tenant_id'), nullable=False, index=True),
+        sa.Column('ca_plan_id', postgresql.UUID(as_uuid=True), sa.ForeignKey('ca_plans.ca_plan_id'), nullable=False, index=True),
+        sa.Column('start_date', sa.Date, nullable=False),
+        sa.Column('end_date', sa.Date, nullable=False),
+        sa.Column('billing_cycle', sa.String(20), nullable=False),
+        sa.Column('amount', sa.Numeric(12, 2), nullable=False),
+        sa.Column('gst_amount', sa.Numeric(12, 2), nullable=False),
+        sa.Column('total_amount', sa.Numeric(12, 2), nullable=False),
+        sa.Column('payment_status', sa.String(20), nullable=False, default='Pending'),
+        sa.Column('payment_date', sa.Date),
+        sa.Column('transaction_ref', sa.String(100)),
+        sa.Column('status', sa.String(20), nullable=False, default='Active', index=True),
+        sa.Column('auto_renew', sa.Boolean, nullable=False, default=True),
+        sa.Column('cancelled_at', sa.DateTime(timezone=True)),
+        sa.Column('cancel_reason', sa.String(300)),
+        sa.Column('created_at', sa.DateTime(timezone=True), nullable=False, server_default=sa.func.now())
+    )
+
+    # ─── Client Plans ────────────────────────────────────────────────────────
+    op.create_table(
+        'client_plans',
+        sa.Column('client_plan_id', postgresql.UUID(as_uuid=True), primary_key=True, default=uuid.uuid4),
+        sa.Column('tenant_id', sa.Integer, sa.ForeignKey('tenant.tenant_id'), nullable=False, index=True),
+        sa.Column('plan_name', sa.String(100), nullable=False),
+        sa.Column('plan_code', sa.String(30), nullable=False, unique=True),
+        sa.Column('description', sa.String(300)),
+        sa.Column('price_monthly', sa.Numeric(12, 2), nullable=False),
+        sa.Column('price_yearly', sa.Numeric(12, 2), nullable=False),
+        sa.Column('gst_pct', sa.Numeric(5, 2), nullable=False, default=18.00),
+        sa.Column('services_included', postgresql.JSONB),
+        sa.Column('max_documents', sa.Integer, nullable=False, default=-1),
+        sa.Column('is_active', sa.Boolean, nullable=False, default=True),
+        sa.Column('created_at', sa.DateTime(timezone=True), nullable=False, server_default=sa.func.now())
+    )
+
+    # ─── Client Subscriptions ────────────────────────────────────────────────
+    op.create_table(
+        'client_subscriptions',
+        sa.Column('client_sub_id', postgresql.UUID(as_uuid=True), primary_key=True, default=uuid.uuid4),
+        sa.Column('tenant_id', sa.Integer, sa.ForeignKey('tenant.tenant_id'), nullable=False, index=True),
+        sa.Column('customer_id', sa.Integer, sa.ForeignKey('customer.customer_id'), nullable=False, index=True),
+        sa.Column('client_plan_id', postgresql.UUID(as_uuid=True), sa.ForeignKey('client_plans.client_plan_id'), nullable=False, index=True),
+        sa.Column('start_date', sa.Date, nullable=False),
+        sa.Column('end_date', sa.Date, nullable=False),
+        sa.Column('billing_cycle', sa.String(20), nullable=False),
+        sa.Column('amount', sa.Numeric(12, 2), nullable=False),
+        sa.Column('gst_amount', sa.Numeric(12, 2), nullable=False),
+        sa.Column('total_amount', sa.Numeric(12, 2), nullable=False),
+        sa.Column('payment_status', sa.String(20), nullable=False, default='Pending'),
+        sa.Column('payment_date', sa.Date),
+        sa.Column('transaction_ref', sa.String(100)),
+        sa.Column('status', sa.String(20), nullable=False, default='Active', index=True),
+        sa.Column('auto_renew', sa.Boolean, nullable=False, default=True),
+        sa.Column('cancelled_at', sa.DateTime(timezone=True)),
+        sa.Column('created_at', sa.DateTime(timezone=True), nullable=False, server_default=sa.func.now())
+    )
+
+    # ─── Client Invoices ─────────────────────────────────────────────────────
+    op.create_table(
+        'client_invoices',
+        sa.Column('invoice_id', postgresql.UUID(as_uuid=True), primary_key=True, default=uuid.uuid4),
+        sa.Column('tenant_id', sa.Integer, sa.ForeignKey('tenant.tenant_id'), nullable=False, index=True),
+        sa.Column('customer_id', sa.Integer, sa.ForeignKey('customer.customer_id'), nullable=False, index=True),
+        sa.Column('client_sub_id', postgresql.UUID(as_uuid=True), sa.ForeignKey('client_subscriptions.client_sub_id'), index=True),
+        sa.Column('task_id', sa.Integer, sa.ForeignKey('task.task_id'), index=True),
+        sa.Column('invoice_number', sa.String(50), nullable=False, unique=True),
+        sa.Column('invoice_date', sa.Date, nullable=False),
+        sa.Column('due_date', sa.Date),
+        sa.Column('amount', sa.Numeric(12, 2), nullable=False),
+        sa.Column('gst_amount', sa.Numeric(12, 2), nullable=False),
+        sa.Column('total_amount', sa.Numeric(12, 2), nullable=False),
+        sa.Column('payment_status', sa.String(20), nullable=False, default='Pending'),
+        sa.Column('payment_date', sa.Date),
+        sa.Column('pdf_url', sa.String(500)),
+        sa.Column('created_at', sa.DateTime(timezone=True), nullable=False, server_default=sa.func.now())
+    )
+
+    # ─── Account Heads ───────────────────────────────────────────────────────
+    op.create_table(
+        'account_heads',
+        sa.Column('account_head_id', postgresql.UUID(as_uuid=True), primary_key=True, default=uuid.uuid4),
+        sa.Column('tenant_id', sa.Integer, sa.ForeignKey('tenant.tenant_id'), nullable=False, index=True),
+        sa.Column('head_name', sa.String(150), nullable=False),
+        sa.Column('head_code', sa.String(20), nullable=False, unique=True),
+        sa.Column('head_type', sa.String(20), nullable=False, index=True),
+        sa.Column('head_sub_type', sa.String(50)),
+        sa.Column('parent_head_id', postgresql.UUID(as_uuid=True), sa.ForeignKey('account_heads.account_head_id')),
+        sa.Column('description', sa.String(300)),
+        sa.Column('is_system', sa.Boolean, nullable=False, default=False),
+        sa.Column('is_active', sa.Boolean, nullable=False, default=True),
+        sa.Column('created_at', sa.DateTime(timezone=True), nullable=False, server_default=sa.func.now())
+    )
+
+    # ─── Account Transactions ────────────────────────────────────────────────
+    op.create_table(
+        'account_transactions',
+        sa.Column('txn_id', postgresql.UUID(as_uuid=True), primary_key=True, default=uuid.uuid4),
+        sa.Column('tenant_id', sa.Integer, sa.ForeignKey('tenant.tenant_id'), nullable=False, index=True),
+        sa.Column('account_head_id', postgresql.UUID(as_uuid=True), sa.ForeignKey('account_heads.account_head_id'), nullable=False, index=True),
+        sa.Column('ref_type', sa.String(30)),
+        sa.Column('ref_id', sa.String(100)),
+        sa.Column('financial_year', sa.String(10), nullable=False, index=True),
+        sa.Column('txn_date', sa.Date, nullable=False, index=True),
+        sa.Column('amount', sa.Numeric(12, 2), nullable=False),
+        sa.Column('txn_type', sa.String(10), nullable=False),
+        sa.Column('currency', sa.String(5), nullable=False, default='INR'),
+        sa.Column('exchange_rate', sa.Numeric(10, 6), nullable=False, default=1.0),
+        sa.Column('description', sa.String(300)),
+        sa.Column('created_by', sa.Integer, sa.ForeignKey('user.user_id'), nullable=False),
+        sa.Column('status', sa.String(20), nullable=False, default='Posted'),
+        sa.Column('created_at', sa.DateTime(timezone=True), nullable=False, server_default=sa.func.now())
+    )
+
+    # ─── Account Ledgers ─────────────────────────────────────────────────────
+    op.create_table(
+        'account_ledgers',
+        sa.Column('ledger_id', postgresql.UUID(as_uuid=True), primary_key=True, default=uuid.uuid4),
+        sa.Column('tenant_id', sa.Integer, sa.ForeignKey('tenant.tenant_id'), nullable=False, index=True),
+        sa.Column('account_head_id', postgresql.UUID(as_uuid=True), sa.ForeignKey('account_heads.account_head_id'), nullable=False, index=True),
+        sa.Column('financial_year', sa.String(10), nullable=False, index=True),
+        sa.Column('opening_balance', sa.Numeric(15, 2), nullable=False, default=0.00),
+        sa.Column('total_credits', sa.Numeric(15, 2), nullable=False, default=0.00),
+        sa.Column('total_debits', sa.Numeric(15, 2), nullable=False, default=0.00),
+        sa.Column('closing_balance', sa.Numeric(15, 2), nullable=False, default=0.00),
+        sa.Column('as_of', sa.Date, nullable=False),
+        sa.Column('currency', sa.String(5), nullable=False, default='INR'),
+        sa.Column('updated_at', sa.DateTime(timezone=True), nullable=False, server_default=sa.func.now())
+    )
+
+    # ─── Social Accounts ─────────────────────────────────────────────────────
+    op.create_table(
+        'social_accounts',
+        sa.Column('social_account_id', postgresql.UUID(as_uuid=True), primary_key=True, default=uuid.uuid4),
+        sa.Column('tenant_id', sa.Integer, sa.ForeignKey('tenant.tenant_id'), nullable=False, index=True),
+        sa.Column('platform', sa.String(20), nullable=False, index=True),
+        sa.Column('account_name', sa.String(150), nullable=False),
+        sa.Column('account_handle', sa.String(100)),
+        sa.Column('access_token', sa.String(500)),
+        sa.Column('token_expiry', sa.DateTime(timezone=True)),
+        sa.Column('page_id', sa.String(100)),
+        sa.Column('status', sa.String(20), nullable=False, default='Active'),
+        sa.Column('connected_at', sa.DateTime(timezone=True)),
+        sa.Column('created_at', sa.DateTime(timezone=True), nullable=False, server_default=sa.func.now())
+    )
+
+    # ─── Social Post Templates ───────────────────────────────────────────────
+    op.create_table(
+        'social_post_templates',
+        sa.Column('post_template_id', postgresql.UUID(as_uuid=True), primary_key=True, default=uuid.uuid4),
+        sa.Column('tenant_id', sa.Integer, sa.ForeignKey('tenant.tenant_id'), nullable=False, index=True),
+        sa.Column('template_name', sa.String(150), nullable=False),
+        sa.Column('platform', sa.String(20), nullable=False, index=True),
+        sa.Column('category', sa.String(30)),
+        sa.Column('content_text', sa.Text, nullable=False),
+        sa.Column('media_url', sa.String(500)),
+        sa.Column('hashtags', sa.String(500)),
+        sa.Column('is_active', sa.Boolean, nullable=False, default=True),
+        sa.Column('created_at', sa.DateTime(timezone=True), nullable=False, server_default=sa.func.now())
+    )
+
+    # ─── Social Posts ────────────────────────────────────────────────────────
+    op.create_table(
+        'social_posts',
+        sa.Column('post_id', postgresql.UUID(as_uuid=True), primary_key=True, default=uuid.uuid4),
+        sa.Column('tenant_id', sa.Integer, sa.ForeignKey('tenant.tenant_id'), nullable=False, index=True),
+        sa.Column('social_account_id', postgresql.UUID(as_uuid=True), sa.ForeignKey('social_accounts.social_account_id'), nullable=False, index=True),
+        sa.Column('post_template_id', postgresql.UUID(as_uuid=True), sa.ForeignKey('social_post_templates.post_template_id')),
+        sa.Column('content_text', sa.Text, nullable=False),
+        sa.Column('media_url', sa.String(500)),
+        sa.Column('scheduled_at', sa.DateTime(timezone=True), index=True),
+        sa.Column('published_at', sa.DateTime(timezone=True)),
+        sa.Column('platform_post_id', sa.String(100)),
+        sa.Column('status', sa.String(20), nullable=False, default='Draft', index=True),
+        sa.Column('likes', sa.Integer, nullable=False, default=0),
+        sa.Column('shares', sa.Integer, nullable=False, default=0),
+        sa.Column('reach', sa.Integer, nullable=False, default=0),
+        sa.Column('error_message', sa.String(300)),
+        sa.Column('created_at', sa.DateTime(timezone=True), nullable=False, server_default=sa.func.now())
+    )
+
+    # ─── Social Schedulers ───────────────────────────────────────────────────
+    op.create_table(
+        'social_schedulers',
+        sa.Column('scheduler_id', postgresql.UUID(as_uuid=True), primary_key=True, default=uuid.uuid4),
+        sa.Column('tenant_id', sa.Integer, sa.ForeignKey('tenant.tenant_id'), nullable=False, index=True),
+        sa.Column('social_account_id', postgresql.UUID(as_uuid=True), sa.ForeignKey('social_accounts.social_account_id'), nullable=False, index=True),
+        sa.Column('post_template_id', postgresql.UUID(as_uuid=True), sa.ForeignKey('social_post_templates.post_template_id'), nullable=False, index=True),
+        sa.Column('trigger_type', sa.String(20), nullable=False),
+        sa.Column('cron_expression', sa.String(50)),
+        sa.Column('trigger_event', sa.String(50)),
+        sa.Column('is_active', sa.Boolean, nullable=False, default=True),
+        sa.Column('last_run_at', sa.DateTime(timezone=True)),
+        sa.Column('next_run_at', sa.DateTime(timezone=True)),
+        sa.Column('created_at', sa.DateTime(timezone=True), nullable=False, server_default=sa.func.now())
+    )
+
+    # ─── Add company_id to task table ────────────────────────────────────────
+    op.add_column('task', sa.Column('company_id', postgresql.UUID(as_uuid=True), sa.ForeignKey('customer_companies.company_id')))
+
+
+def downgrade():
+    # Drop in reverse order to handle foreign key dependencies
+    op.drop_column('task', 'company_id')
+    
+    op.drop_table('social_schedulers')
+    op.drop_table('social_posts')
+    op.drop_table('social_post_templates')
+    op.drop_table('social_accounts')
+    
+    op.drop_table('account_ledgers')
+    op.drop_table('account_transactions')
+    op.drop_table('account_heads')
+    
+    op.drop_table('client_invoices')
+    op.drop_table('client_subscriptions')
+    op.drop_table('client_plans')
+    op.drop_table('ca_subscriptions')
+    op.drop_table('ca_plans')
+    
+    op.drop_table('wa_schedulers')
+    op.drop_table('wa_logs')
+    op.drop_table('wa_queue')
+    
+    op.drop_table('email_schedulers')
+    op.drop_table('email_logs')
+    op.drop_table('email_queue')
+    
+    op.drop_table('customer_event_notifications')
+    op.drop_table('wa_templates')
+    op.drop_table('email_templates')
+    op.drop_table('customer_events')
+    
+    op.drop_table('client_documents')
+    op.drop_table('customer_companies')
+    op.drop_table('tenant_companies')
