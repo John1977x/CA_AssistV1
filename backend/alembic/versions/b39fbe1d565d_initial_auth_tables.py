@@ -8,7 +8,9 @@ Create Date: 2026-04-26 17:56:44.183082
 from typing import Sequence, Union
 from alembic import op
 import sqlalchemy as sa
-import tables, column
+from sqlalchemy import table, column, Integer, String, Text, DateTime, Boolean
+import bcrypt
+from datetime import datetime
 
 
 # revision identifiers, used by Alembic.
@@ -19,43 +21,11 @@ depends_on: Union[str, Sequence[str], None] = None
 
 
 def upgrade() -> None:
-    # Define table reference
-    user_table = table(
-        "user",
-        column("user_id", Integer),
-        column("tenant_id", Integer),
-        column("role_id", Integer),
-        column("first_name", String),
-        column("last_name", String),
-        column("email", String),
-        column("password_hash", Text),
-        column("is_owner", Boolean),
-        column("status", String),
-        column("created_at", DateTime),
-    )
-
-    # 🔐 Hash password
-    password = "Admin@123"
-    hashed_password = bcrypt.hashpw(password.encode("utf-8"), bcrypt.gensalt()).decode("utf-8")
-
-    # Insert admin (assuming tenant_id=1, role_id=1 exists)
-    op.bulk_insert(
-        user_table,
-        [
-            {
-                "tenant_id": 1,
-                "role_id": 1,
-                "first_name": "Admin",
-                "last_name": "User",
-                "email": "admin@example.com",
-                "password_hash": hashed_password,
-                "is_owner": True,
-                "status": "ACTIVE",
-                "created_at": datetime.utcnow(),
-            }
-        ],
-    )
+    # This migration is a merge point and doesn't create any new schema.
+    # All schema changes are handled by the main migration branches.
+    pass
 
 
 def downgrade() -> None:
-    op.execute("DELETE FROM \"user\" WHERE email='admin@example.com'")
+    # No-op for downgrade
+    pass
