@@ -23,6 +23,7 @@ export interface CompanyInfo {
   role: CompanyRoleEnum
   branch_id?: string
   branch_name?: string
+  client_id?: string  // For clients, the actual client_id from CompanyClient table
 }
 
 interface AuthState {

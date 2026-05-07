@@ -9,7 +9,7 @@ from sqlalchemy.orm import sessionmaker
 from sqlalchemy import select
 from app.db.session import Base
 from app.models.auth import User
-from app.models.company_v2 import Company, CompanyBranch, CompanyRole, CompanyUser, CompanyRoleEnum
+from app.models.company_v2 import Company, CompanyBranch, CompanyRole, CompanyUser, CompanyClient, CompanyRoleEnum
 from app.core.security import hash_password
 from app.core.config import settings
 from datetime import datetime, timezone
@@ -153,17 +153,31 @@ async def seed_demo_users():
                     company.owner_id = user.user_id
                     await session.flush()
                 
-                # Create company user association
-                company_user = CompanyUser(
-                    company_user_id=uuid.uuid4(),
-                    company_id=company.company_id,
-                    user_id=user.user_id,
-                    role_id=roles[user_data["role"]].role_id,
-                    branch_id=head_office.branch_id,
-                    status="ACTIVE",
-                    joined_at=datetime.now(timezone.utc),
-                )
-                session.add(company_user)
+                # If client, create as CompanyClient instead of CompanyUser
+                if user_data["role"] == "CLIENT":
+                    company_client = CompanyClient(
+                        client_id=uuid.uuid4(),
+                        company_id=company.company_id,
+                        user_id=user.user_id,
+                        client_name=f"{user.first_name} {user.last_name}",
+                        client_code=f"CLI{user.user_id:03d}",
+                        email=user.email,
+                        phone=user.phone,
+                        status="ACTIVE",
+                    )
+                    session.add(company_client)
+                else:
+                    # Create company user association for non-clients
+                    company_user = CompanyUser(
+                        company_user_id=uuid.uuid4(),
+                        company_id=company.company_id,
+                        user_id=user.user_id,
+                        role_id=roles[user_data["role"]].role_id,
+                        branch_id=head_office.branch_id,
+                        status="ACTIVE",
+                        joined_at=datetime.now(timezone.utc),
+                    )
+                    session.add(company_user)
                 
                 print(f"✅ Created user: {user.email} ({user_data['role']})")
             

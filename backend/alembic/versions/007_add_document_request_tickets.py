@@ -1,7 +1,7 @@
 """Add document request tickets table
 
 Revision ID: 007_add_document_request_tickets
-Revises: 006_add_company_tables
+Revises: ad06b3af97a2
 Create Date: 2026-05-07 00:00:00.000000
 
 """
@@ -11,7 +11,7 @@ from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
 revision = '007_add_document_request_tickets'
-down_revision = '006_add_company_tables'
+down_revision = 'ad06b3af97a2'
 branch_labels = None
 depends_on = None
 

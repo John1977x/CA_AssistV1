@@ -75,6 +75,28 @@ export interface AddTeamMemberRequest {
   branch_id?: string
 }
 
+export interface AddClientRequest {
+  client_name: string
+  client_code: string
+  email?: string
+  phone?: string
+  client_type?: string
+  pan?: string
+  gstin?: string
+}
+
+export interface ClientResponse {
+  client_id: string
+  client_name: string
+  client_code: string
+  email?: string
+  phone?: string
+  client_type?: string
+  status: string
+  user_id?: number
+  created_at: string
+}
+
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
 
 // Document Request Tickets
@@ -166,6 +188,31 @@ export const companiesApi = {
 
   removeTeamMember: async (companyId: string, userId: number): Promise<void> => {
     await api.delete(`${API_URL}/api/v1/companies/${companyId}/team/${userId}`)
+  },
+
+  // Clients
+  listClients: async (companyId: string): Promise<ClientResponse[]> => {
+    const response = await api.get(`${API_URL}/api/v1/companies/${companyId}/clients`)
+    return response.data
+  },
+
+  createClient: async (companyId: string, data: AddClientRequest): Promise<ClientResponse> => {
+    const response = await api.post(`${API_URL}/api/v1/companies/${companyId}/clients`, data)
+    return response.data
+  },
+
+  getClient: async (companyId: string, clientId: string): Promise<ClientResponse> => {
+    const response = await api.get(`${API_URL}/api/v1/companies/${companyId}/clients/${clientId}`)
+    return response.data
+  },
+
+  updateClient: async (companyId: string, clientId: string, data: Partial<AddClientRequest>): Promise<ClientResponse> => {
+    const response = await api.patch(`${API_URL}/api/v1/companies/${companyId}/clients/${clientId}`, data)
+    return response.data
+  },
+
+  deleteClient: async (companyId: string, clientId: string): Promise<void> => {
+    await api.delete(`${API_URL}/api/v1/companies/${companyId}/clients/${clientId}`)
   },
 
   // Document Request Tickets

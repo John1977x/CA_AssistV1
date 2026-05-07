@@ -75,6 +75,7 @@ class CompanyInfo(BaseModel):
     role: CompanyRoleEnum
     branch_id: Optional[str] = None
     branch_name: Optional[str] = None
+    client_id: Optional[str] = None  # For clients, the actual client_id from CompanyClient table
 
 
 class UserProfile(BaseModel):
@@ -329,6 +330,7 @@ class ClientOut(BaseModel):
     phone: Optional[str] = None
     client_type: Optional[str] = None
     status: str
+    user_id: Optional[int] = None
     created_at: datetime
 
     class Config:
@@ -347,6 +349,7 @@ class ClientOut(BaseModel):
             'phone': obj.phone if hasattr(obj, 'phone') else None,
             'client_type': obj.client_type if hasattr(obj, 'client_type') else None,
             'status': obj.status if hasattr(obj, 'status') else None,
+            'user_id': obj.user_id if hasattr(obj, 'user_id') else None,
             'created_at': obj.created_at if hasattr(obj, 'created_at') else None,
         }
         return cls(**data)

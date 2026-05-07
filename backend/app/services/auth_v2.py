@@ -275,6 +275,12 @@ async def login_user(db: AsyncSession, data: LoginRequest) -> LoginResponse:
     user.locked_until = None
     user.last_login_at = datetime.now(timezone.utc)
 
+    # Check if user is a client first
+    client_result = await db.execute(
+        select(CompanyClient).where(CompanyClient.user_id == user.user_id).limit(1)
+    )
+    company_client = client_result.scalar_one_or_none()
+    
     # Get company and branch info for the user (get most recent if multiple)
     company_user_result = await db.execute(
         select(CompanyUser).where(CompanyUser.user_id == user.user_id).order_by(CompanyUser.created_at.desc()).limit(1)
@@ -286,12 +292,30 @@ async def login_user(db: AsyncSession, data: LoginRequest) -> LoginResponse:
         "company_id": None,
         "company_name": None,
         "company_code": None,
-        "role": "OWNER" if user.is_owner else "EMPLOYEE",
+        "role": "OWNER" if user.is_owner else ("CLIENT" if company_client else "EMPLOYEE"),
         "branch_id": None,
         "branch_name": None,
+        "client_id": None,
     }
     
-    if company_user:
+    # If user is a client, get client's company info
+    if company_client:
+        client_company_result = await db.execute(
+            select(Company).where(Company.company_id == company_client.company_id)
+        )
+        client_company = client_company_result.scalar_one_or_none()
+        
+        if client_company:
+            company_info = {
+                "company_id": str(client_company.company_id),
+                "company_name": client_company.company_name,
+                "company_code": client_company.company_code,
+                "role": "CLIENT",
+                "branch_id": None,
+                "branch_name": None,
+                "client_id": str(company_client.client_id),
+            }
+    elif company_user:
         # Get company details
         company_result = await db.execute(
             select(Company).where(Company.company_id == company_user.company_id)
@@ -320,6 +344,7 @@ async def login_user(db: AsyncSession, data: LoginRequest) -> LoginResponse:
                 "role": role.role_name if role else ("OWNER" if user.is_owner else "EMPLOYEE"),
                 "branch_id": str(company_user.branch_id) if company_user.branch_id else None,
                 "branch_name": branch_info.branch_name if branch_info else None,
+                "client_id": None,
             }
     elif user.is_owner:
         # For owners with no company assignment, get their first owned company
@@ -336,6 +361,7 @@ async def login_user(db: AsyncSession, data: LoginRequest) -> LoginResponse:
                 "role": "OWNER",
                 "branch_id": None,
                 "branch_name": None,
+                "client_id": None,
             }
 
     # Create tokens
@@ -375,6 +401,7 @@ async def login_user(db: AsyncSession, data: LoginRequest) -> LoginResponse:
             role=company_info["role"],
             branch_id=company_info.get("branch_id"),
             branch_name=company_info.get("branch_name"),
+            client_id=company_info.get("client_id"),
         ),
         expires_in=settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60,
     )
@@ -594,6 +621,7 @@ async def add_client(
 ) -> ClientOut:
     """
     Add a client to a company (owner/manager only)
+    Creates a User account with default password if email is provided
     """
     # Convert company_id to UUID
     try:
@@ -621,10 +649,40 @@ async def add_client(
             detail="User not associated with this company"
         )
 
+    # If email is provided, create a User account for the client
+    client_user_id = None
+    if data.email:
+        # Check if user already exists
+        existing_user_result = await db.execute(
+            select(User).where(User.email == data.email)
+        )
+        existing_user = existing_user_result.scalar_one_or_none()
+        
+        if existing_user:
+            client_user_id = existing_user.user_id
+        else:
+            # Create new user with default password
+            default_password = "CAassists@123456"
+            new_user = User(
+                email=data.email,
+                first_name=data.client_name.split()[0] if data.client_name else "Client",
+                last_name=data.client_name.split()[-1] if len(data.client_name.split()) > 1 else "User",
+                password_hash=hash_password(default_password),
+                phone=data.phone,
+                is_owner=False,
+                status="ACTIVE",
+                is_email_verified=False,
+                failed_login_attempts=0,
+            )
+            db.add(new_user)
+            await db.flush()
+            client_user_id = new_user.user_id
+
     # Create client
     client = CompanyClient(
         client_id=uuid.uuid4(),
         company_id=company_uuid,
+        user_id=client_user_id,
         client_name=data.client_name,
         client_code=data.client_code,
         email=data.email,

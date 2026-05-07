@@ -6,6 +6,9 @@ import { useState } from 'react'
 export default function ClientDashboardV2() {
   const { user, company } = useAuthStoreV2()
   const [showDocumentForm, setShowDocumentForm] = useState(false)
+  
+  // Use the actual client_id from the login response
+  const clientId = company?.client_id || ''
 
   const tasks = [
     { id: 1, title: 'GST Return Filing', status: 'completed', dueDate: '2026-04-15', progress: 100 },
@@ -53,139 +56,139 @@ export default function ClientDashboardV2() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
-      {/* Header */}
-      <div className="bg-slate-800 border-b border-slate-700 p-6">
-        <div className="max-w-7xl mx-auto">
-          <h1 className="text-3xl font-bold text-white mb-2">
-            Welcome, {user?.first_name}!
-          </h1>
-          <p className="text-slate-400">Here's your account overview and recent activities</p>
+    <div className="p-6 max-w-7xl mx-auto space-y-6">
+      {/* Welcome Header */}
+      <div className="bg-gradient-to-r from-brand-800 to-brand-700 rounded-2xl p-6 text-white">
+        <h2 className="text-xl font-bold mb-1">
+          Welcome, {user?.first_name}! 👋
+        </h2>
+        <p className="text-brand-200 text-sm">Here's your account overview and recent activities</p>
+        <div className="mt-4 flex items-center gap-3">
+          <div className="bg-white/10 rounded-lg px-3 py-1.5 text-xs font-medium">
+            📊 {company?.company_name || 'Your Company'}
+          </div>
         </div>
       </div>
 
-      {/* Main Content */}
-      <div className="max-w-7xl mx-auto p-6">
-        {/* Stats Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          {stats.map((stat, idx) => {
-            const Icon = stat.icon
-            return (
-              <div key={idx} className="bg-slate-800 rounded-lg p-6 border border-slate-700 hover:border-slate-600 transition-colors">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-slate-400 text-sm mb-1">{stat.label}</p>
-                    <p className="text-3xl font-bold text-white">{stat.value}</p>
-                  </div>
-                  <div className={`${stat.color} p-3 rounded-lg`}>
-                    <Icon className="text-white" size={24} />
-                  </div>
+      {/* Stats Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        {stats.map((stat, idx) => {
+          const Icon = stat.icon
+          return (
+            <div key={idx} className="card p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-slate-600 text-sm mb-1">{stat.label}</p>
+                  <p className="text-3xl font-bold text-slate-900">{stat.value}</p>
+                </div>
+                <div className={`${stat.color} p-3 rounded-lg`}>
+                  <Icon className="text-white" size={24} />
                 </div>
               </div>
-            )
-          })}
-        </div>
-
-        {/* Tasks and Documents */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Your Tasks */}
-          <div className="bg-slate-800 rounded-lg border border-slate-700 p-6">
-            <h2 className="text-xl font-bold text-white mb-4">Your Tasks</h2>
-            <div className="space-y-3">
-              {tasks.map((task) => (
-                <div
-                  key={task.id}
-                  className="p-4 bg-slate-700 rounded-lg hover:bg-slate-650 transition-colors"
-                >
-                  <div className="flex items-center justify-between mb-2">
-                    <div className="flex items-center gap-2">
-                      {getStatusIcon(task.status)}
-                      <h3 className="text-white font-semibold">{task.title}</h3>
-                    </div>
-                    <span className={`px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(task.status)}`}>
-                      {task.status.charAt(0).toUpperCase() + task.status.slice(1)}
-                    </span>
-                  </div>
-                  <div className="flex items-center justify-between text-sm text-slate-400 mb-2">
-                    <span>Due: {task.dueDate}</span>
-                    <span>{task.progress}% Complete</span>
-                  </div>
-                  <div className="w-full bg-slate-600 rounded-full h-2">
-                    <div
-                      className="bg-brand-600 h-2 rounded-full transition-all"
-                      style={{ width: `${task.progress}%` }}
-                    ></div>
-                  </div>
-                </div>
-              ))}
             </div>
-          </div>
+          )
+        })}
+      </div>
 
-          {/* Recent Documents */}
-          <div className="bg-slate-800 rounded-lg border border-slate-700 p-6">
-            <h2 className="text-xl font-bold text-white mb-4">Recent Documents</h2>
-            <div className="space-y-3">
-              {documents.map((doc) => (
-                <div
-                  key={doc.id}
-                  className="flex items-center justify-between p-4 bg-slate-700 rounded-lg hover:bg-slate-650 transition-colors"
-                >
-                  <div className="flex items-center gap-3 flex-1">
-                    <FileText className="text-brand-400" size={20} />
-                    <div className="flex-1">
-                      <p className="text-white font-semibold text-sm">{doc.name}</p>
-                      <p className="text-slate-400 text-xs">{doc.date} • {doc.size}</p>
-                    </div>
+      {/* Tasks and Documents */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Your Tasks */}
+        <div className="card p-6">
+          <h2 className="text-lg font-bold text-slate-900 mb-4">Your Tasks</h2>
+          <div className="space-y-3">
+            {tasks.map((task) => (
+              <div
+                key={task.id}
+                className="p-4 bg-slate-50 rounded-lg hover:bg-slate-100 transition-colors"
+              >
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-2">
+                    {getStatusIcon(task.status)}
+                    <h3 className="text-slate-900 font-semibold">{task.title}</h3>
                   </div>
-                  <button className="p-2 hover:bg-slate-600 rounded-lg transition-colors">
-                    <Download className="text-brand-400" size={20} />
-                  </button>
+                  <span className={`px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(task.status)}`}>
+                    {task.status.charAt(0).toUpperCase() + task.status.slice(1)}
+                  </span>
                 </div>
-              ))}
-            </div>
+                <div className="flex items-center justify-between text-sm text-slate-600 mb-2">
+                  <span>Due: {task.dueDate}</span>
+                  <span>{task.progress}% Complete</span>
+                </div>
+                <div className="w-full bg-slate-200 rounded-full h-2">
+                  <div
+                    className="bg-brand-600 h-2 rounded-full transition-all"
+                    style={{ width: `${task.progress}%` }}
+                  ></div>
+                </div>
+              </div>
+            ))}
           </div>
         </div>
 
-        {/* Support Section */}
-        <div className="mt-8 bg-slate-800 rounded-lg border border-slate-700 p-6">
+        {/* Recent Documents */}
+        <div className="card p-6">
+          <h2 className="text-lg font-bold text-slate-900 mb-4">Recent Documents</h2>
+          <div className="space-y-3">
+            {documents.map((doc) => (
+              <div
+                key={doc.id}
+                className="flex items-center justify-between p-4 bg-slate-50 rounded-lg hover:bg-slate-100 transition-colors"
+              >
+                <div className="flex items-center gap-3 flex-1">
+                  <FileText className="text-brand-600" size={20} />
+                  <div className="flex-1">
+                    <p className="text-slate-900 font-semibold text-sm">{doc.name}</p>
+                    <p className="text-slate-500 text-xs">{doc.date} • {doc.size}</p>
+                  </div>
+                </div>
+                <button className="p-2 hover:bg-slate-200 rounded-lg transition-colors">
+                  <Download className="text-brand-600" size={20} />
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Support Section */}
+      <div className="card p-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <h3 className="text-lg font-bold text-slate-900 mb-2">Need Help?</h3>
+            <p className="text-slate-600">Contact our support team for any questions or issues</p>
+          </div>
+          <button className="flex items-center gap-2 px-6 py-3 bg-brand-600 hover:bg-brand-700 text-white rounded-lg transition-colors">
+            <MessageSquare size={20} />
+            Contact Support
+          </button>
+        </div>
+      </div>
+
+      {/* Document Request Section */}
+      {!showDocumentForm ? (
+        <div className="card p-6">
           <div className="flex items-center justify-between">
             <div>
-              <h3 className="text-xl font-bold text-white mb-2">Need Help?</h3>
-              <p className="text-slate-400">Contact our support team for any questions or issues</p>
+              <h3 className="text-lg font-bold text-slate-900 mb-2">Request Documents</h3>
+              <p className="text-slate-600">Need to submit documents? Request them from your CA firm</p>
             </div>
-            <button className="flex items-center gap-2 px-6 py-3 bg-brand-600 hover:bg-brand-700 text-white rounded-lg transition-colors">
-              <MessageSquare size={20} />
-              Contact Support
+            <button
+              onClick={() => setShowDocumentForm(true)}
+              className="flex items-center gap-2 px-6 py-3 bg-brand-600 hover:bg-brand-700 text-white rounded-lg transition-colors"
+            >
+              <FileText size={20} />
+              Request Documents
             </button>
           </div>
         </div>
-
-        {/* Document Request Section */}
-        {!showDocumentForm ? (
-          <div className="mt-8 bg-slate-800 rounded-lg border border-slate-700 p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <h3 className="text-xl font-bold text-white mb-2">Request Documents</h3>
-                <p className="text-slate-400">Need to submit documents? Request them from your CA firm</p>
-              </div>
-              <button
-                onClick={() => setShowDocumentForm(true)}
-                className="flex items-center gap-2 px-6 py-3 bg-brand-600 hover:bg-brand-700 text-white rounded-lg transition-colors"
-              >
-                <FileText size={20} />
-                Request Documents
-              </button>
-            </div>
-          </div>
-        ) : (
-          <div className="mt-8">
-            <DocumentRequestForm
-              clientId={company?.company_id || ''}
-              onClose={() => setShowDocumentForm(false)}
-            />
-          </div>
-        )}
-      </div>
+      ) : (
+        <div>
+          <DocumentRequestForm
+            clientId={clientId}
+            onClose={() => setShowDocumentForm(false)}
+          />
+        </div>
+      )}
     </div>
   )
 }
