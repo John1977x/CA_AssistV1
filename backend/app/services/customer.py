@@ -6,10 +6,12 @@ from typing import Optional, List, Tuple
 import re
 
 from app.models.customer import Customer, CustomerDetails
+from app.models.auth import User
 from app.schemas.customer import (
     CustomerCreate, CustomerUpdate,
     CustomerDetailsCreate,
 )
+from app.core.security import hash_password
 
 
 # ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -138,6 +140,59 @@ async def create_customer(db: AsyncSession, tenant_id: int, data: CustomerCreate
     # Create empty details record
     details = CustomerDetails(customer_id=customer.customer_id)
     db.add(details)
+    
+    # Create User account for customer if email is provided
+    if customer.email:
+        # Check if user already exists with this email
+        existing_user = await db.execute(
+            select(User).where(User.email == customer.email)
+        )
+        if not existing_user.scalar_one_or_none():
+            # Get or create CLIENT role
+            from app.models.auth import UserRole
+            role_result = await db.execute(
+                select(UserRole).where(
+                    UserRole.tenant_id == tenant_id,
+                    UserRole.role_name == "CLIENT"
+                )
+            )
+            role = role_result.scalar_one_or_none()
+            
+            if not role:
+                # Create CLIENT role if it doesn't exist
+                role = UserRole(
+                    tenant_id=tenant_id,
+                    role_name="CLIENT",
+                    role_code="CLIENT",
+                    description="Client user role",
+                    is_system_role=False,
+                )
+                db.add(role)
+                await db.flush()
+            
+            # Create new user with default password
+            default_password = "CAassists@123456"
+            password_hash = hash_password(default_password)
+            
+            # Extract first and last name from display_name
+            name_parts = customer.display_name.split(" ", 1)
+            first_name = name_parts[0]
+            last_name = name_parts[1] if len(name_parts) > 1 else ""
+            
+            user = User(
+                tenant_id=tenant_id,
+                role_id=role.role_id,
+                email=customer.email,
+                first_name=first_name,
+                last_name=last_name,
+                display_name=customer.display_name,
+                phone=customer.phone,
+                password_hash=password_hash,
+                status="ACTIVE",
+                is_owner=False,
+            )
+            db.add(user)
+    
     await db.commit()
     await db.refresh(customer)
     return customer

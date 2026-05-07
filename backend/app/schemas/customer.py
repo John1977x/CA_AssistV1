@@ -1,4 +1,4 @@
-from pydantic import BaseModel, EmailStr, Field, field_validator
+from pydantic import BaseModel, Field, field_validator
 from typing import Optional, List, Any, Dict
 from datetime import datetime, date
 import re
@@ -20,7 +20,7 @@ class CustomerCreate(BaseModel):
     pan:                Optional[str] = None
     gstin:              Optional[str] = None
     aadhar_number:      Optional[str] = None
-    email:              Optional[EmailStr] = None
+    email:              Optional[str] = None
     phone:              str = Field(..., min_length=10, max_length=15)
     alternate_phone:    Optional[str] = None
     whatsapp:           Optional[str] = None
@@ -35,12 +35,20 @@ class CustomerCreate(BaseModel):
     assigned_user_id:   Optional[int] = None
     onboarded_at:       Optional[date] = None
 
-    @field_validator("*", mode="before")
+    @field_validator("legal_name", "pan", "gstin", "aadhar_number", "email", "alternate_phone", "whatsapp", "industry_code", "source_channel", "notes", mode="before")
     @classmethod
     def empty_str_to_none(cls, v):
         """Convert empty strings to None for optional fields"""
         if isinstance(v, str) and v.strip() == "":
             return None
+        return v
+
+    @field_validator("email")
+    @classmethod
+    def validate_email(cls, v):
+        """Validate email format if provided"""
+        if v and "@" not in v:
+            raise ValueError("Invalid email format")
         return v
 
     @field_validator("pan")
@@ -53,8 +61,9 @@ class CustomerCreate(BaseModel):
     @field_validator("gstin")
     @classmethod
     def validate_gstin(cls, v):
-        if v and not re.match(r'^\d{2}[A-Z]{5}\d{4}[A-Z]{1}[A-Z\d]{1}[Z]{1}[A-Z\d]{1}$', v.upper()):
-            raise ValueError("Invalid GSTIN format")
+        # Accept any 15-character value as GSTIN (validation is lenient)
+        if v and len(v) != 15:
+            raise ValueError("GSTIN must be exactly 15 characters")
         return v.upper() if v else v
 
 
@@ -64,7 +73,7 @@ class CustomerUpdate(BaseModel):
     legal_name:         Optional[str] = None
     pan:                Optional[str] = None
     gstin:              Optional[str] = None
-    email:              Optional[EmailStr] = None
+    email:              Optional[str] = None
     phone:              Optional[str] = None
     alternate_phone:    Optional[str] = None
     whatsapp:           Optional[str] = None
@@ -80,7 +89,38 @@ class CustomerUpdate(BaseModel):
     risk_level:         Optional[str] = None
     kyc_status:         Optional[str] = None
     portal_access:      Optional[bool] = None
-    portal_email:       Optional[EmailStr] = None
+    portal_email:       Optional[str] = None
+
+    @field_validator("*", mode="before")
+    @classmethod
+    def empty_str_to_none(cls, v):
+        """Convert empty strings to None for optional fields"""
+        if isinstance(v, str) and v.strip() == "":
+            return None
+        return v
+
+    @field_validator("email", "portal_email")
+    @classmethod
+    def validate_email(cls, v):
+        """Validate email format if provided"""
+        if v and "@" not in v:
+            raise ValueError("Invalid email format")
+        return v
+
+    @field_validator("pan")
+    @classmethod
+    def validate_pan(cls, v):
+        if v and not re.match(r'^[A-Z]{5}[0-9]{4}[A-Z]{1}$', v.upper()):
+            raise ValueError("Invalid PAN format (e.g. ABCDE1234F)")
+        return v.upper() if v else v
+
+    @field_validator("gstin")
+    @classmethod
+    def validate_gstin(cls, v):
+        # Accept any 15-character value as GSTIN (validation is lenient)
+        if v and len(v) != 15:
+            raise ValueError("GSTIN must be exactly 15 characters")
+        return v.upper() if v else v
 
 
 class CustomerDetailsCreate(BaseModel):
@@ -167,9 +207,6 @@ class CustomerOut(BaseModel):
     referred_by_customer_id: Optional[int]
     created_at:             datetime
     updated_at:             datetime
-    # Relationships removed to avoid greenlet errors
-    # assigned_user: Optional[AssignedUserBrief] = None
-    # details: Optional[CustomerDetailsOut] = None
 
     model_config = {"from_attributes": True}
 
@@ -190,8 +227,6 @@ class CustomerListOut(BaseModel):
     tags:           Optional[List[str]]
     onboarded_at:   Optional[date]
     assigned_user_id: Optional[int]
-    # Relationships removed to avoid greenlet errors
-    # assigned_user: Optional[AssignedUserBrief] = None
     created_at:     datetime
 
     model_config = {"from_attributes": True}
@@ -205,7 +240,7 @@ SERVICES_LIST = ["GST", "ITR", "TDS", "Audit", "ROC", "Accounting", "Payroll", "
 
 class EnquiryCreate(BaseModel):
     full_name:              str = Field(..., min_length=2, max_length=200)
-    email:                  Optional[EmailStr] = None
+    email:                  Optional[str] = None
     phone:                  str = Field(..., min_length=10, max_length=15)
     company_name:           Optional[str] = None
     service_interested:     Optional[List[str]] = None
@@ -218,10 +253,26 @@ class EnquiryCreate(BaseModel):
     follow_up_date:         Optional[date] = None
     enquiry_date:           Optional[date] = None
 
+    @field_validator("*", mode="before")
+    @classmethod
+    def empty_str_to_none(cls, v):
+        """Convert empty strings to None for optional fields"""
+        if isinstance(v, str) and v.strip() == "":
+            return None
+        return v
+
+    @field_validator("email")
+    @classmethod
+    def validate_email(cls, v):
+        """Validate email format if provided"""
+        if v and "@" not in v:
+            raise ValueError("Invalid email format")
+        return v
+
 
 class EnquiryUpdate(BaseModel):
     full_name:              Optional[str] = None
-    email:                  Optional[EmailStr] = None
+    email:                  Optional[str] = None
     phone:                  Optional[str] = None
     company_name:           Optional[str] = None
     service_interested:     Optional[List[str]] = None
@@ -234,11 +285,27 @@ class EnquiryUpdate(BaseModel):
     lost_reason:            Optional[str] = None
     assigned_to_user_id:    Optional[int] = None
 
+    @field_validator("*", mode="before")
+    @classmethod
+    def empty_str_to_none(cls, v):
+        """Convert empty strings to None for optional fields"""
+        if isinstance(v, str) and v.strip() == "":
+            return None
+        return v
+
+    @field_validator("email")
+    @classmethod
+    def validate_email(cls, v):
+        """Validate email format if provided"""
+        if v and "@" not in v:
+            raise ValueError("Invalid email format")
+        return v
+
 
 class EnquiryConvertRequest(BaseModel):
     """Convert an enquiry to a full customer record."""
     customer_type:  str = "INDIVIDUAL"
-    display_name:   Optional[str] = None   # defaults to enquiry full_name
+    display_name:   Optional[str] = None
     pan:            Optional[str] = None
     gstin:          Optional[str] = None
     onboarded_at:   Optional[date] = None
@@ -269,8 +336,6 @@ class EnquiryOut(BaseModel):
     branch_id:              Optional[int]
     assigned_to_user_id:    Optional[int]
     referred_by_customer_id: Optional[int]
-    # Relationships removed to avoid greenlet errors
-    # assigned_to_user: Optional[AssignedUserBrief] = None
     created_at:             datetime
     updated_at:             datetime
 
@@ -292,8 +357,6 @@ class EnquiryListOut(BaseModel):
     follow_up_date:     Optional[date]
     is_converted:       bool
     assigned_to_user_id: Optional[int]
-    # Relationships removed to avoid greenlet errors
-    # assigned_to_user: Optional[AssignedUserBrief] = None
     created_at:         datetime
 
     model_config = {"from_attributes": True}

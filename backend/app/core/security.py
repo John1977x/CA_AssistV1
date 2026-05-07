@@ -33,11 +33,15 @@ def verify_password(plain: str, hashed: str) -> bool:
     """
     Verify password by first hashing with SHA256, then comparing with bcrypt hash.
     """
-    # Pre-hash with SHA256 to match the hashing process
-    # Use digest (32 bytes) instead of hexdigest to stay well under 72-byte limit
-    sha256_hash = base64.b64encode(hashlib.sha256(plain.encode()).digest()).decode('utf-8')
-    # Then verify with bcrypt
-    return bcrypt.checkpw(sha256_hash.encode('utf-8'), hashed.encode('utf-8'))
+    try:
+        # Pre-hash with SHA256 to match the hashing process
+        # Use digest (32 bytes) instead of hexdigest to stay well under 72-byte limit
+        sha256_hash = base64.b64encode(hashlib.sha256(plain.encode()).digest()).decode('utf-8')
+        # Then verify with bcrypt
+        return bcrypt.checkpw(sha256_hash.encode('utf-8'), hashed.encode('utf-8'))
+    except (ValueError, TypeError):
+        # Handle invalid salt or corrupted hash
+        return False
 
 
 def validate_password_strength(password: str) -> tuple[bool, str]:

@@ -33,7 +33,10 @@ async def current_subscription(
     current_user: User = Depends(get_current_active_user),
 ):
     """Get full current subscription status including usage and days remaining."""
-    return await svc.get_current_subscription(db, current_user.tenant_id)
+    result = await svc.get_current_subscription(db, current_user.tenant_id)
+    if result is None:
+        return None
+    return result
 
 
 # ─── Preview upgrade/downgrade ────────────────────────────────────────────────

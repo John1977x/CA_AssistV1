@@ -2,10 +2,11 @@
 New Authentication Schemas for Multi-Company, Multi-Role Architecture
 """
 
-from pydantic import BaseModel, EmailStr, Field, validator
+from pydantic import BaseModel, EmailStr, Field, field_validator
 from typing import Optional, List
 from datetime import datetime
 from enum import Enum
+import re
 
 
 class CompanyRoleEnum(str, Enum):
@@ -36,7 +37,8 @@ class OwnerRegisterRequest(BaseModel):
     company_name: str = Field(..., min_length=1, max_length=200)
     company_code: str = Field(..., min_length=1, max_length=20)
 
-    @validator('password')
+    @field_validator('password')
+    @classmethod
     def validate_password(cls, v):
         if not any(c.isupper() for c in v):
             raise ValueError('Password must contain at least one uppercase letter')
@@ -75,7 +77,7 @@ class CompanyInfo(BaseModel):
     role: CompanyRoleEnum
     branch_id: Optional[str] = None
     branch_name: Optional[str] = None
-    client_id: Optional[str] = None  # For clients, the actual client_id from CompanyClient table
+    client_id: Optional[str] = None
 
 
 class UserProfile(BaseModel):
@@ -124,7 +126,8 @@ class ChangePasswordRequest(BaseModel):
     new_password: str
     confirm_password: str
 
-    @validator('new_password')
+    @field_validator('new_password')
+    @classmethod
     def validate_password(cls, v):
         if len(v) < 8:
             raise ValueError('Password must be at least 8 characters')
@@ -136,9 +139,10 @@ class ChangePasswordRequest(BaseModel):
             raise ValueError('Password must contain at least one digit')
         return v
 
-    @validator('confirm_password')
-    def passwords_match(cls, v, values):
-        if 'new_password' in values and v != values['new_password']:
+    @field_validator('confirm_password')
+    @classmethod
+    def passwords_match(cls, v, info):
+        if 'new_password' in info.data and v != info.data['new_password']:
             raise ValueError('Passwords do not match')
         return v
 
@@ -154,7 +158,8 @@ class ResetPasswordRequest(BaseModel):
     new_password: str
     confirm_password: str
 
-    @validator('new_password')
+    @field_validator('new_password')
+    @classmethod
     def validate_password(cls, v):
         if len(v) < 8:
             raise ValueError('Password must be at least 8 characters')
@@ -166,9 +171,10 @@ class ResetPasswordRequest(BaseModel):
             raise ValueError('Password must contain at least one digit')
         return v
 
-    @validator('confirm_password')
-    def passwords_match(cls, v, values):
-        if 'new_password' in values and v != values['new_password']:
+    @field_validator('confirm_password')
+    @classmethod
+    def passwords_match(cls, v, info):
+        if 'new_password' in info.data and v != info.data['new_password']:
             raise ValueError('Passwords do not match')
         return v
 
@@ -204,7 +210,7 @@ class CreateCompanyRequest(BaseModel):
     """Create company request"""
     company_name: str = Field(..., min_length=1, max_length=200)
     company_code: str = Field(..., min_length=1, max_length=20)
-    email: Optional[EmailStr] = None
+    email: Optional[str] = None
     phone: Optional[str] = None
     address_line1: Optional[str] = None
     address_line2: Optional[str] = None
@@ -214,6 +220,37 @@ class CreateCompanyRequest(BaseModel):
     pan: Optional[str] = None
     gstin: Optional[str] = None
     cin: Optional[str] = None
+
+    @field_validator("email", "phone", "pan", "gstin", "cin", mode="before")
+    @classmethod
+    def empty_str_to_none(cls, v):
+        """Convert empty strings to None for optional fields"""
+        if isinstance(v, str) and v.strip() == "":
+            return None
+        return v
+
+    @field_validator("email")
+    @classmethod
+    def validate_email(cls, v):
+        """Validate email format if provided"""
+        if v and "@" not in v:
+            raise ValueError("Invalid email format")
+        return v
+
+    @field_validator("pan")
+    @classmethod
+    def validate_pan(cls, v):
+        if v and not re.match(r'^[A-Z]{5}[0-9]{4}[A-Z]{1}$', v.upper()):
+            raise ValueError("Invalid PAN format (e.g. ABCDE1234F)")
+        return v.upper() if v else v
+
+    @field_validator("gstin")
+    @classmethod
+    def validate_gstin(cls, v):
+        # Accept any 15-character value as GSTIN (validation is lenient)
+        if v and len(v) != 15:
+            raise ValueError("GSTIN must be exactly 15 characters")
+        return v.upper() if v else v
 
 
 class CompanyOut(BaseModel):
@@ -228,8 +265,7 @@ class CompanyOut(BaseModel):
     status: str
     created_at: datetime
 
-    class Config:
-        from_attributes = True
+    model_config = {"from_attributes": True}
     
     @classmethod
     def from_orm(cls, obj):
@@ -274,19 +310,16 @@ class TeamMemberOut(BaseModel):
     status: str
     joined_at: Optional[datetime] = None
 
-    class Config:
-        from_attributes = True
+    model_config = {"from_attributes": True}
     
     @classmethod
     def from_orm(cls, obj):
         """Convert ORM object to schema, converting UUID to string"""
         if obj is None:
             return None
-        # Get user details from the relationship (should be eagerly loaded)
         user = obj.user if hasattr(obj, 'user') else None
         role = obj.role if hasattr(obj, 'role') else None
         
-        # Extract role name - handle both CompanyRole object and string
         role_name = None
         if role:
             if hasattr(role, 'role_name'):
@@ -314,11 +347,42 @@ class AddClientRequest(BaseModel):
     """Add client request"""
     client_name: str = Field(..., min_length=1, max_length=200)
     client_code: str = Field(..., min_length=1, max_length=20)
-    email: Optional[EmailStr] = None
+    email: Optional[str] = None
     phone: Optional[str] = None
     client_type: Optional[str] = None
     pan: Optional[str] = None
     gstin: Optional[str] = None
+
+    @field_validator("email", "phone", "client_type", "pan", "gstin", mode="before")
+    @classmethod
+    def empty_str_to_none(cls, v):
+        """Convert empty strings to None for optional fields"""
+        if isinstance(v, str) and v.strip() == "":
+            return None
+        return v
+
+    @field_validator("email")
+    @classmethod
+    def validate_email(cls, v):
+        """Validate email format if provided"""
+        if v and "@" not in v:
+            raise ValueError("Invalid email format")
+        return v
+
+    @field_validator("pan")
+    @classmethod
+    def validate_pan(cls, v):
+        if v and not re.match(r'^[A-Z]{5}[0-9]{4}[A-Z]{1}$', v.upper()):
+            raise ValueError("Invalid PAN format (e.g. ABCDE1234F)")
+        return v.upper() if v else v
+
+    @field_validator("gstin")
+    @classmethod
+    def validate_gstin(cls, v):
+        # Accept any 15-character value as GSTIN (validation is lenient)
+        if v and len(v) != 15:
+            raise ValueError("GSTIN must be exactly 15 characters")
+        return v.upper() if v else v
 
 
 class ClientOut(BaseModel):
@@ -333,8 +397,7 @@ class ClientOut(BaseModel):
     user_id: Optional[int] = None
     created_at: datetime
 
-    class Config:
-        from_attributes = True
+    model_config = {"from_attributes": True}
     
     @classmethod
     def from_orm(cls, obj):
@@ -361,7 +424,7 @@ class CreateBranchRequest(BaseModel):
     """Create branch request"""
     branch_name: str = Field(..., min_length=1, max_length=200)
     branch_code: str = Field(..., min_length=1, max_length=20)
-    email: Optional[EmailStr] = None
+    email: Optional[str] = None
     phone: Optional[str] = None
     address_line1: Optional[str] = None
     address_line2: Optional[str] = None
@@ -370,6 +433,22 @@ class CreateBranchRequest(BaseModel):
     pincode: Optional[str] = None
     is_head_office: bool = False
     manager_id: Optional[int] = None
+
+    @field_validator("email", "phone", mode="before")
+    @classmethod
+    def empty_str_to_none(cls, v):
+        """Convert empty strings to None for optional fields"""
+        if isinstance(v, str) and v.strip() == "":
+            return None
+        return v
+
+    @field_validator("email")
+    @classmethod
+    def validate_email(cls, v):
+        """Validate email format if provided"""
+        if v and "@" not in v:
+            raise ValueError("Invalid email format")
+        return v
 
 
 class BranchOut(BaseModel):
@@ -383,8 +462,7 @@ class BranchOut(BaseModel):
     status: str
     created_at: datetime
 
-    class Config:
-        from_attributes = True
+    model_config = {"from_attributes": True}
     
     @classmethod
     def from_orm(cls, obj):
@@ -427,19 +505,18 @@ class ChangeCompanyBranchResponse(BaseModel):
     company: CompanyInfo
 
 
-
 # ─── Document Request Tickets ──────────────────────────────────────────────
 
 class DocumentRequestTicketCreate(BaseModel):
     """Create document request ticket"""
-    document_types: List[str] = Field(..., min_items=1)  # ["PAN", "TAN", "COMPANY_ESTABLISHED_DATE"]
+    document_types: List[str] = Field(..., min_items=1)
     description: Optional[str] = None
     priority: str = Field(default="NORMAL", pattern="^(URGENT|NORMAL|LOW)$")
 
 
 class DocumentRequestTicketUpdate(BaseModel):
     """Update document request ticket"""
-    status: Optional[str] = None  # OPEN, IN_PROGRESS, COMPLETED, REJECTED
+    status: Optional[str] = None
     assigned_to_user_id: Optional[int] = None
     completion_notes: Optional[str] = None
 
@@ -461,8 +538,7 @@ class DocumentRequestTicketOut(BaseModel):
     created_at: datetime
     updated_at: datetime
 
-    class Config:
-        from_attributes = True
+    model_config = {"from_attributes": True}
     
     @classmethod
     def from_orm(cls, obj):

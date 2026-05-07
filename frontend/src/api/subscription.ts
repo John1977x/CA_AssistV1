@@ -8,7 +8,7 @@ export const subscriptionApi = {
 
   // Authenticated
   getCurrent: () =>
-    api.get<CurrentSubscription>('/subscription/current').then(r => r.data),
+    api.get<CurrentSubscription | null>('/subscription/current').then(r => r.data),
 
   previewChange: (plan_code: string, billing_cycle: string) =>
     api.get<UpgradePreview>('/subscription/preview', { params: { plan_code, billing_cycle } }).then(r => r.data),

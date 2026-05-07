@@ -275,11 +275,12 @@ async def login_user(db: AsyncSession, data: LoginRequest) -> LoginResponse:
     user.locked_until = None
     user.last_login_at = datetime.now(timezone.utc)
 
-    # Check if user is a client first
-    client_result = await db.execute(
-        select(CompanyClient).where(CompanyClient.user_id == user.user_id).limit(1)
+    # Check if user is a client first by checking their role
+    role_result = await db.execute(
+        select(UserRole).where(UserRole.role_id == user.role_id)
     )
-    company_client = client_result.scalar_one_or_none()
+    user_role = role_result.scalar_one_or_none()
+    is_client = user_role and user_role.role_name == "CLIENT"
     
     # Get company and branch info for the user (get most recent if multiple)
     company_user_result = await db.execute(
@@ -287,19 +288,38 @@ async def login_user(db: AsyncSession, data: LoginRequest) -> LoginResponse:
     )
     company_user = company_user_result.scalar_one_or_none()
     
+    # Check if user is a client via CompanyClient (legacy support)
+    client_result = await db.execute(
+        select(CompanyClient).where(CompanyClient.user_id == user.user_id).limit(1)
+    )
+    company_client = client_result.scalar_one_or_none()
+    
     # Default company info (fallback if user has no company assignment)
     company_info = {
         "company_id": None,
         "company_name": None,
         "company_code": None,
-        "role": "OWNER" if user.is_owner else ("CLIENT" if company_client else "EMPLOYEE"),
+        "role": "OWNER" if user.is_owner else ("CLIENT" if (is_client or company_client) else "EMPLOYEE"),
         "branch_id": None,
         "branch_name": None,
         "client_id": None,
     }
     
-    # If user is a client, get client's company info
-    if company_client:
+    # If user is a client (via role), get client's company info
+    if is_client:
+        # For customers created as clients, they don't have a company yet
+        # Just return CLIENT role
+        company_info = {
+            "company_id": None,
+            "company_name": None,
+            "company_code": None,
+            "role": "CLIENT",
+            "branch_id": None,
+            "branch_name": None,
+            "client_id": None,
+        }
+    # If user is a client via CompanyClient (legacy)
+    elif company_client:
         client_company_result = await db.execute(
             select(Company).where(Company.company_id == company_client.company_id)
         )
@@ -547,18 +567,43 @@ async def add_team_member(
             )
         new_user = existing
     else:
-        # Create new user
+        # Create new user with default password
+        # Get the company owner to get the correct tenant_id
+        company_result = await db.execute(
+            select(Company).where(Company.company_id == company_uuid)
+        )
+        company = company_result.scalar_one_or_none()
+        
+        if not company:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Company not found"
+            )
+        
+        # Get a valid role for the tenant (use EMPLOYEE role or first available)
+        role_result = await db.execute(
+            select(UserRole).where(
+                UserRole.tenant_id == company.owner.tenant_id
+            ).limit(1)
+        )
+        valid_role = role_result.scalar_one_or_none()
+        
+        if not valid_role:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="No roles available for this tenant"
+            )
+        
+        default_password = "CAassists@123456"
         new_user = User(
-            tenant_id=1,  # Default tenant
-            role_id=1,  # Default role
+            tenant_id=company.owner.tenant_id,  # Use company owner's tenant
+            role_id=valid_role.role_id,  # Use valid role from tenant
             first_name=data.first_name,
             last_name=data.last_name,
             email=data.email,
             phone=data.phone,
-            password_hash=hash_password(secrets.token_urlsafe(16)),
-            status="INVITED",
-            invite_token=secrets.token_urlsafe(32),
-            invite_expiry=datetime.now(timezone.utc) + timedelta(days=7),
+            password_hash=hash_password(default_password),
+            status="ACTIVE",
         )
         db.add(new_user)
         await db.flush()

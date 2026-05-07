@@ -54,7 +54,8 @@ async def get_current_subscription(db: AsyncSession, tenant_id: int) -> dict:
     )
     history = hist_r.scalar_one_or_none()
     if not history:
-        raise HTTPException(status_code=404, detail="No active subscription found.")
+        # Return None instead of raising 404 - no active subscription is not an error
+        return None
 
     # Get plan
     plan_r = await db.execute(
