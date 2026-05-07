@@ -4,7 +4,6 @@ import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { Eye, EyeOff, Loader2, CheckCircle } from 'lucide-react'
-import toast from 'react-hot-toast'
 import { authV2Api } from '@/api/authV2'
 
 const schema = z.object({
@@ -65,8 +64,8 @@ export default function RegisterOwnerPage() {
       })
       setDone(true)
     } catch (err: any) {
-      const detail = err?.response?.data?.detail
-      toast.error(detail || 'Registration failed')
+      // Silent error handling - no toast notification
+      console.error('Registration failed:', err)
     } finally {
       setIsLoading(false)
     }

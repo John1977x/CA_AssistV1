@@ -4,7 +4,6 @@ import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { Eye, EyeOff, Loader2 } from 'lucide-react'
-import toast from 'react-hot-toast'
 import { useAuthStoreV2 } from '@/store/authStoreV2'
 import { authV2Api } from '@/api/authV2'
 
@@ -36,9 +35,8 @@ export default function LoginPageV2() {
       })
 
       setAuth(response.user, response.company, response.access_token, response.refresh_token)
-      toast.success(`Welcome back, ${response.user.first_name}!`)
 
-      // Route based on role
+      // Route based on role - no toast notification
       setTimeout(() => {
         switch (response.company.role) {
           case 'OWNER':
@@ -58,8 +56,8 @@ export default function LoginPageV2() {
         }
       }, 100)
     } catch (err: any) {
-      const detail = err?.response?.data?.detail
-      toast.error(detail || 'Login failed')
+      // Silent error handling - no toast notification
+      console.error('Login failed:', err)
     } finally {
       setIsLoading(false)
     }

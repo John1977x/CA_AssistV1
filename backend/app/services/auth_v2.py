@@ -275,24 +275,51 @@ async def login_user(db: AsyncSession, data: LoginRequest) -> LoginResponse:
     user.locked_until = None
     user.last_login_at = datetime.now(timezone.utc)
 
-    # For now, create a default company response since company_user table doesn't exist yet
-    # This is a temporary solution until the company_v2 tables are properly set up
+    # Get company and branch info for the user
+    company_user_result = await db.execute(
+        select(CompanyUser).where(CompanyUser.user_id == user.user_id)
+    )
+    company_user = company_user_result.scalar_one_or_none()
     
-    # Determine role based on is_owner flag
-    if user.is_owner:
-        role_name = "OWNER"
-    else:
-        role_name = "EMPLOYEE"  # Default role for non-owners
-    
-    # Create default company info
     company_info = {
         "company_id": "default-company",
         "company_name": "Default Company",
         "company_code": "DEFAULT",
-        "role": role_name,
+        "role": "OWNER" if user.is_owner else "EMPLOYEE",
         "branch_id": None,
         "branch_name": None,
     }
+    
+    if company_user:
+        # Get company details
+        company_result = await db.execute(
+            select(Company).where(Company.company_id == company_user.company_id)
+        )
+        company = company_result.scalar_one_or_none()
+        
+        # Get role details
+        role_result = await db.execute(
+            select(CompanyRole).where(CompanyRole.role_id == company_user.role_id)
+        )
+        role = role_result.scalar_one_or_none()
+        
+        # Get branch details if assigned
+        branch_info = None
+        if company_user.branch_id:
+            branch_result = await db.execute(
+                select(CompanyBranch).where(CompanyBranch.branch_id == company_user.branch_id)
+            )
+            branch_info = branch_result.scalar_one_or_none()
+        
+        if company:
+            company_info = {
+                "company_id": str(company.company_id),
+                "company_name": company.company_name,
+                "company_code": company.company_code,
+                "role": role.role_name if role else ("OWNER" if user.is_owner else "EMPLOYEE"),
+                "branch_id": str(company_user.branch_id) if company_user.branch_id else None,
+                "branch_name": branch_info.branch_name if branch_info else None,
+            }
 
     # Create tokens
     access_token = create_access_token(
@@ -612,3 +639,94 @@ async def create_branch(
     await db.commit()
 
     return BranchOut.from_orm(branch)
+
+
+# ─── Change Company/Branch ──────────────────────────────────────────────────
+
+async def change_company_branch(
+    db: AsyncSession,
+    user_id: int,
+    company_id: str,
+    branch_id: Optional[str] = None
+) -> CompanyInfo:
+    """
+    Change user's company and branch (owner only)
+    """
+    # Get user
+    user_result = await db.execute(
+        select(User).where(User.user_id == user_id)
+    )
+    user = user_result.scalar_one_or_none()
+
+    if not user or not user.is_owner:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only owners can change company and branch"
+        )
+
+    # Verify company exists
+    company_result = await db.execute(
+        select(Company).where(Company.company_id == company_id)
+    )
+    company = company_result.scalar_one_or_none()
+
+    if not company:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Company not found"
+        )
+
+    # Verify user is associated with this company
+    company_user_result = await db.execute(
+        select(CompanyUser).where(
+            and_(
+                CompanyUser.user_id == user_id,
+                CompanyUser.company_id == company_id,
+            )
+        )
+    )
+    company_user = company_user_result.scalar_one_or_none()
+
+    if not company_user:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="User not associated with this company"
+        )
+
+    # Verify branch exists if provided
+    branch_info = None
+    if branch_id:
+        branch_result = await db.execute(
+            select(CompanyBranch).where(
+                and_(
+                    CompanyBranch.branch_id == branch_id,
+                    CompanyBranch.company_id == company_id,
+                )
+            )
+        )
+        branch_info = branch_result.scalar_one_or_none()
+
+        if not branch_info:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Branch not found in this company"
+            )
+
+    # Update company user's branch
+    company_user.branch_id = branch_id
+    await db.commit()
+
+    # Get role details
+    role_result = await db.execute(
+        select(CompanyRole).where(CompanyRole.role_id == company_user.role_id)
+    )
+    role = role_result.scalar_one_or_none()
+
+    return CompanyInfo(
+        company_id=str(company.company_id),
+        company_name=company.company_name,
+        company_code=company.company_code,
+        role=role.role_name if role else "OWNER",
+        branch_id=str(branch_id) if branch_id else None,
+        branch_name=branch_info.branch_name if branch_info else None,
+    )

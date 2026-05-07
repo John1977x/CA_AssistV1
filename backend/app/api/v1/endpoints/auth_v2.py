@@ -12,9 +12,10 @@ from app.schemas.auth_v2 import (
     ChangePasswordRequest,
     ForgotPasswordRequest,
     ResetPasswordRequest,
+    ChangeCompanyBranchRequest, ChangeCompanyBranchResponse,
 )
 from app.services.auth_v2 import (
-    register_owner, login_user,
+    register_owner, login_user, change_company_branch,
 )
 from app.core.security import (
     create_access_token, decode_token, verify_password, hash_password,
@@ -252,3 +253,41 @@ async def reset_password_endpoint(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Invalid or expired token"
         )
+
+
+# ─── Change Company/Branch ──────────────────────────────────────────────────
+
+@router.post("/change-company-branch")
+async def change_company_branch_endpoint(
+    request,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    Change user's company and branch (owner only)
+    
+    - **company_id**: ID of the company to switch to
+    - **branch_id**: ID of the branch (optional)
+    """
+    from app.schemas.auth_v2 import ChangeCompanyBranchRequest, ChangeCompanyBranchResponse
+    from app.services.auth_v2 import change_company_branch
+    
+    # Parse request
+    if isinstance(request, dict):
+        change_request = ChangeCompanyBranchRequest(**request)
+    else:
+        change_request = request
+    
+    # Call service
+    company_info = await change_company_branch(
+        db,
+        current_user.user_id,
+        change_request.company_id,
+        change_request.branch_id
+    )
+    
+    return ChangeCompanyBranchResponse(
+        message="Company and branch changed successfully",
+        company=company_info
+    )
+

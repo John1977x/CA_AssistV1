@@ -89,4 +89,13 @@ export const authV2Api = {
     const response = await axios.post(`${API_URL}/api/v1/auth/reset-password`, data)
     return response.data
   },
+
+  // Change Company & Branch
+  changeCompanyBranch: async (data: {
+    company_id: string
+    branch_id?: string | null
+  }): Promise<{ message: string; company: CompanyInfo }> => {
+    const response = await axios.post(`${API_URL}/api/v1/auth/change-company-branch`, data)
+    return response.data
+  },
 }

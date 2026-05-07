@@ -1,192 +1,140 @@
 import { apiClient } from './client'
 
-export interface TenantCompany {
+export interface Company {
   company_id: string
-  company_code: string
-  tenant_id: number
+  owner_id: number
   company_name: string
-  phone?: string
-  address1?: string
-  address2?: string
-  city?: string
-  state?: string
-  pincode?: string
-  country?: string
-  status: string
-  created_at: string
-}
-
-export interface CustomerCompany {
-  company_id: string
   company_code: string
-  customer_id: number
-  tenant_id: number
-  company_name: string
-  company_type?: string
-  cin?: string
-  pan?: string
-  tan?: string
-  gstin?: string
-  incorporation_date?: string
-  registered_address?: string
-  city?: string
-  state?: string
-  pincode?: string
-  country?: string
-  phone?: string
   email?: string
-  is_primary: boolean
-  status: string
-  created_at: string
-}
-
-export interface ClientDocument {
-  client_doc_id: string
-  customer_id: number
-  company_id?: string
-  tenant_id: number
-  document_type: string
-  document_number?: string
-  document_name: string
-  url: string
-  size_kb?: number
-  issue_date?: string
-  expiry_date?: string
-  verified_by?: number
-  verified_at?: string
-  status: string
-  remarks?: string
-  created_at: string
-}
-
-export interface TenantCompanyCreate {
-  company_code: string
-  tenant_id: number
-  company_name: string
   phone?: string
-  address1?: string
-  address2?: string
+  address_line1?: string
+  address_line2?: string
   city?: string
   state?: string
   pincode?: string
   country?: string
-  status?: string
-}
-
-export interface CustomerCompanyCreate {
-  company_code: string
-  customer_id: number
-  tenant_id: number
-  company_name: string
-  company_type?: string
-  cin?: string
   pan?: string
-  tan?: string
   gstin?: string
-  incorporation_date?: string
-  registered_address?: string
+  cin?: string
+  status: string
+  description?: string
+  logo_url?: string
+  website?: string
+  created_at: string
+  updated_at: string
+}
+
+export interface CompanyUser {
+  company_user_id: string
+  user_id: number
+  role: string
+  status: string
+  joined_at?: string
+}
+
+export interface CompanyClient {
+  client_id: string
+  client_name: string
+  client_code: string
+  email?: string
+  phone?: string
+  status: string
+}
+
+export interface CompanyBranch {
+  branch_id: string
+  branch_name: string
+  branch_code: string
   city?: string
   state?: string
-  pincode?: string
-  country?: string
-  phone?: string
-  email?: string
-  is_primary?: boolean
-  status?: string
+  is_head_office: boolean
+  status: string
 }
 
-export interface ClientDocumentCreate {
-  customer_id: number
-  company_id?: string
-  tenant_id: number
-  document_type: string
-  document_number?: string
-  document_name: string
-  url: string
-  size_kb?: number
-  issue_date?: string
-  expiry_date?: string
-  status?: string
-  remarks?: string
-}
-
-// Tenant Companies API
-export const tenantCompaniesApi = {
-  list: async (params?: { skip?: number; limit?: number }) => {
-    const response = await apiClient.get<TenantCompany[]>('/companies/tenant-companies', { params })
+export const companiesApi = {
+  // List all companies for the current owner
+  listCompanies: async (): Promise<Company[]> => {
+    const response = await apiClient.get('/api/v1/companies')
     return response.data
   },
 
-  create: async (data: TenantCompanyCreate) => {
-    const response = await apiClient.post<TenantCompany>('/companies/tenant-companies', data)
+  // Get a specific company
+  getCompany: async (companyId: string): Promise<Company> => {
+    const response = await apiClient.get(`/api/v1/companies/${companyId}`)
     return response.data
   },
 
-  get: async (id: string) => {
-    const response = await apiClient.get<TenantCompany>(`/companies/tenant-companies/${id}`)
+  // Create a new company
+  createCompany: async (data: Partial<Company>): Promise<Company> => {
+    const response = await apiClient.post('/api/v1/companies', data)
     return response.data
   },
 
-  update: async (id: string, data: Partial<TenantCompanyCreate>) => {
-    const response = await apiClient.put<TenantCompany>(`/companies/tenant-companies/${id}`, data)
+  // Update a company
+  updateCompany: async (companyId: string, data: Partial<Company>): Promise<Company> => {
+    const response = await apiClient.put(`/api/v1/companies/${companyId}`, data)
     return response.data
   },
 
-  delete: async (id: string) => {
-    await apiClient.delete(`/companies/tenant-companies/${id}`)
+  // Delete a company
+  deleteCompany: async (companyId: string): Promise<void> => {
+    await apiClient.delete(`/api/v1/companies/${companyId}`)
   },
-}
 
-// Customer Companies API
-export const customerCompaniesApi = {
-  list: async (params?: { customer_id?: number; skip?: number; limit?: number }) => {
-    const response = await apiClient.get<CustomerCompany[]>('/companies/customer-companies', { params })
+  // List team members (employees/managers) in a company
+  listTeamMembers: async (companyId: string): Promise<CompanyUser[]> => {
+    const response = await apiClient.get(`/api/v1/companies/${companyId}/team-members`)
     return response.data
   },
 
-  create: async (data: CustomerCompanyCreate) => {
-    const response = await apiClient.post<CustomerCompany>('/companies/customer-companies', data)
+  // Add an employee to a company
+  addEmployee: async (companyId: string, data: { user_id: number; role: string }): Promise<CompanyUser> => {
+    const response = await apiClient.post(`/api/v1/companies/${companyId}/employees`, data)
     return response.data
   },
 
-  get: async (id: string) => {
-    const response = await apiClient.get<CustomerCompany>(`/companies/customer-companies/${id}`)
+  // Add a manager to a company
+  addManager: async (companyId: string, data: { user_id: number }): Promise<CompanyUser> => {
+    const response = await apiClient.post(`/api/v1/companies/${companyId}/managers`, data)
     return response.data
   },
 
-  update: async (id: string, data: Partial<CustomerCompanyCreate>) => {
-    const response = await apiClient.put<CustomerCompany>(`/companies/customer-companies/${id}`, data)
+  // Remove a team member from a company
+  removeTeamMember: async (companyId: string, userId: number): Promise<void> => {
+    await apiClient.delete(`/api/v1/companies/${companyId}/team-members/${userId}`)
+  },
+
+  // List clients of a company
+  listClients: async (companyId: string): Promise<CompanyClient[]> => {
+    const response = await apiClient.get(`/api/v1/companies/${companyId}/clients`)
     return response.data
   },
 
-  delete: async (id: string) => {
-    await apiClient.delete(`/companies/customer-companies/${id}`)
-  },
-}
-
-// Client Documents API
-export const clientDocumentsApi = {
-  list: async (params?: { customer_id?: number; company_id?: string; document_type?: string; skip?: number; limit?: number }) => {
-    const response = await apiClient.get<ClientDocument[]>('/companies/documents', { params })
+  // Add a client to a company
+  addClient: async (companyId: string, data: Partial<CompanyClient>): Promise<CompanyClient> => {
+    const response = await apiClient.post(`/api/v1/companies/${companyId}/clients`, data)
     return response.data
   },
 
-  create: async (data: ClientDocumentCreate) => {
-    const response = await apiClient.post<ClientDocument>('/companies/documents', data)
+  // Delete a client from a company
+  deleteClient: async (companyId: string, clientId: string): Promise<void> => {
+    await apiClient.delete(`/api/v1/companies/${companyId}/clients/${clientId}`)
+  },
+
+  // List branches of a company
+  listBranches: async (companyId: string): Promise<CompanyBranch[]> => {
+    const response = await apiClient.get(`/api/v1/companies/${companyId}/branches`)
     return response.data
   },
 
-  get: async (id: string) => {
-    const response = await apiClient.get<ClientDocument>(`/companies/documents/${id}`)
+  // Create a branch for a company
+  createBranch: async (companyId: string, data: Partial<CompanyBranch>): Promise<CompanyBranch> => {
+    const response = await apiClient.post(`/api/v1/companies/${companyId}/branches`, data)
     return response.data
   },
 
-  update: async (id: string, data: Partial<ClientDocumentCreate>) => {
-    const response = await apiClient.put<ClientDocument>(`/companies/documents/${id}`, data)
-    return response.data
-  },
-
-  delete: async (id: string) => {
-    await apiClient.delete(`/companies/documents/${id}`)
+  // Delete a branch
+  deleteBranch: async (companyId: string, branchId: string): Promise<void> => {
+    await apiClient.delete(`/api/v1/companies/${companyId}/branches/${branchId}`)
   },
 }

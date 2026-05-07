@@ -4,7 +4,6 @@ import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { Eye, EyeOff, Loader2, Building2 } from 'lucide-react'
-import toast from 'react-hot-toast'
 import { authApi } from '@/api/auth'
 import { useAuthStore } from '@/store/authStore'
 import type { LoginForm } from '@/types/auth'
@@ -31,11 +30,10 @@ export default function ClientLoginPage() {
     try {
       const result = await authApi.login(data)
       setAuth(result.user, result.access_token, result.refresh_token)
-      toast.success(`Welcome, ${result.user.first_name}!`)
       navigate('/client/dashboard')
     } catch (err: any) {
-      const detail = err?.response?.data?.detail
-      toast.error(detail || 'Login failed')
+      // Silent error handling - no toast notification
+      console.error('Login failed:', err)
     } finally {
       setIsLoading(false)
     }

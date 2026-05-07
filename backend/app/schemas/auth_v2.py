@@ -326,3 +326,18 @@ class ErrorResponse(BaseModel):
     detail: str
     error_code: Optional[str] = None
     timestamp: datetime = Field(default_factory=datetime.utcnow)
+
+
+# ─── Change Company/Branch ──────────────────────────────────────────────────
+
+class ChangeCompanyBranchRequest(BaseModel):
+    """Change company and branch request"""
+    company_id: str
+    branch_id: Optional[str] = None
+
+
+class ChangeCompanyBranchResponse(BaseModel):
+    """Change company and branch response"""
+    message: str
+    company: CompanyInfo
+

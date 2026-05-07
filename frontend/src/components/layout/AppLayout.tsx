@@ -5,13 +5,15 @@ import {
   ChevronDown, LogOut, Bell, Menu, X, Shield, Building,
   FileText, ClipboardList, BookOpen, TrendingUp, ChevronRight,
   Calendar, Briefcase, BarChart3, Ticket, Mail, DollarSign,
-  GitBranch, User, Clock, CheckSquare,
+  GitBranch, User, Clock, CheckSquare, Edit3,
 } from 'lucide-react'
 import { useAuthStoreV2 } from '@/store/authStoreV2'
 import { authV2Api } from '@/api/authV2'
 import toast from 'react-hot-toast'
 import clsx from 'clsx'
 import { TrialBanner } from '@/components/subscription/SubscriptionWidget'
+import { CompanyBranchInfo } from './CompanyBranchInfo'
+import { ChangeCompanyBranchModal } from './ChangeCompanyBranchModal'
 
 // Owner Navigation
 const OWNER_NAV_GROUPS = [
@@ -19,7 +21,7 @@ const OWNER_NAV_GROUPS = [
     label: 'Menu',
     items: [
       { to: '/owner/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
-      { to: '/owner/calendar', icon: Calendar, label: 'Calendar' },
+      { to: '/dashboard-unified', icon: Calendar, label: 'Calendar' },
       { to: '/owner/company', icon: Building2, label: 'Company' },
       { to: '/owner/clients', icon: UserCheck, label: 'Client' },
     ],
@@ -77,7 +79,7 @@ const MANAGER_NAV_GROUPS = [
     label: 'Menu',
     items: [
       { to: '/manager/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
-      { to: '/manager/calendar', icon: Calendar, label: 'Calendar' },
+      { to: '/dashboard-unified', icon: Calendar, label: 'Calendar' },
       { to: '#', icon: Building2, label: 'NA', disabled: true },
       { to: '/manager/clients', icon: UserCheck, label: 'Client' },
     ],
@@ -134,7 +136,7 @@ const EMPLOYEE_NAV_GROUPS = [
     label: 'Menu',
     items: [
       { to: '/employee/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
-      { to: '/employee/calendar', icon: Calendar, label: 'Calendar' },
+      { to: '/dashboard-unified', icon: Calendar, label: 'Calendar' },
       { to: '#', icon: Building2, label: 'NA', disabled: true },
       { to: '/employee/clients', icon: UserCheck, label: 'Client' },
     ],
@@ -189,7 +191,7 @@ const CLIENT_NAV_GROUPS = [
     label: 'Menu',
     items: [
       { to: '/client/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
-      { to: '/client/calendar', icon: Calendar, label: 'Calendar' },
+      { to: '/dashboard-unified', icon: Calendar, label: 'Calendar' },
       { to: '#', icon: Building2, label: 'NA', disabled: true },
       { to: '/client/profile', icon: User, label: 'Profile' },
     ],
@@ -380,6 +382,7 @@ function SidebarContent({ onClose }: { onClose?: () => void }) {
 
 export default function AppLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [changeCompanyModalOpen, setChangeCompanyModalOpen] = useState(false)
   const { pathname } = useLocation()
   const { company } = useAuthStoreV2()
 
@@ -404,6 +407,9 @@ export default function AppLayout() {
   // Get page title from path
   const pageTitle = navGroups.flatMap(g => g.items).find(i => pathname.startsWith(i.to))?.label || 'Dashboard'
 
+  // Check if user is owner
+  const isOwner = company?.role === 'OWNER'
+
   return (
     <div className="flex h-screen overflow-hidden bg-slate-50">
       {/* Desktop sidebar */}
@@ -423,6 +429,9 @@ export default function AppLayout() {
 
       {/* Main content */}
       <div className="flex-1 flex flex-col overflow-hidden">
+        {/* Company/Branch Info Bar */}
+        <CompanyBranchInfo />
+
         {/* Top bar */}
         <header className="bg-white border-b border-slate-200 px-4 lg:px-6 py-3 flex items-center gap-4 flex-shrink-0">
           <button
@@ -433,6 +442,18 @@ export default function AppLayout() {
           </button>
           <h1 className="text-base font-semibold text-slate-900 flex-1">{pageTitle}</h1>
           <div className="flex items-center gap-2">
+            {/* Change Company/Branch Icon - Only for Owners */}
+            {isOwner && (
+              <button
+                onClick={() => setChangeCompanyModalOpen(true)}
+                className="relative p-2 rounded-lg text-slate-500 hover:bg-slate-100 hover:text-brand-600 transition-colors"
+                title="Change Company & Branch"
+              >
+                <Edit3 size={18} />
+              </button>
+            )}
+            
+            {/* Notification Bell */}
             <button className="relative p-2 rounded-lg text-slate-500 hover:bg-slate-100">
               <Bell size={18} />
               <span className="absolute top-1.5 right-1.5 w-1.5 h-1.5 bg-red-500 rounded-full" />
@@ -447,6 +468,12 @@ export default function AppLayout() {
           <Outlet />
         </main>
       </div>
+
+      {/* Change Company/Branch Modal */}
+      <ChangeCompanyBranchModal 
+        isOpen={changeCompanyModalOpen} 
+        onClose={() => setChangeCompanyModalOpen(false)} 
+      />
     </div>
   )
 }

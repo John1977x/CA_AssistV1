@@ -6,6 +6,7 @@ import { ProtectedRoute, PublicRoute } from '@/components/auth/ProtectedRoute'
 import LandingPage from '@/pages/auth/LandingPage'
 import LoginPage from '@/pages/auth/LoginPage'
 import LoginPageV2 from '@/pages/auth/LoginPageV2'
+import UnifiedLoginPage from '@/pages/auth/UnifiedLoginPage'
 import RegisterOwnerPage from '@/pages/auth/RegisterOwnerPage'
 import ClientLoginPage from '@/pages/auth/ClientLoginPage'
 import EmployeeLoginPage from '@/pages/auth/EmployeeLoginPage'
@@ -16,6 +17,7 @@ import AcceptInvitePage from '@/pages/auth/AcceptInvitePage'
 
 // Dashboards
 import DashboardPage from '@/pages/DashboardPage'
+import DashboardUnified from '@/pages/DashboardUnified'
 import OwnerDashboard from '@/pages/owner/OwnerDashboard'
 import ManagerDashboard from '@/pages/manager/ManagerDashboard'
 import EmployeeDashboardV2 from '@/pages/employee/EmployeeDashboardV2'
@@ -47,7 +49,7 @@ export default function AppRoutes() {
     <Routes>
       {/* Public Routes */}
       <Route path="/" element={<PublicRoute><LandingPage /></PublicRoute>} />
-      <Route path="/login" element={<PublicRoute><LoginPageV2 /></PublicRoute>} />
+      <Route path="/login" element={<PublicRoute><UnifiedLoginPage /></PublicRoute>} />
       <Route path="/register-owner" element={<PublicRoute><RegisterOwnerPage /></PublicRoute>} />
       <Route path="/manager/login" element={<PublicRoute><ManagerLoginPage /></PublicRoute>} />
       <Route path="/client/login" element={<PublicRoute><ClientLoginPage /></PublicRoute>} />
@@ -71,6 +73,7 @@ export default function AppRoutes() {
         
         {/* Main Pages */}
         <Route path="/dashboard" element={<DashboardPage />} />
+        <Route path="/dashboard-unified" element={<DashboardUnified />} />
         
         {/* Management Pages */}
         <Route path="/users" element={<UsersPage />} />
