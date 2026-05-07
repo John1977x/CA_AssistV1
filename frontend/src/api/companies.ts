@@ -1,8 +1,6 @@
-import { apiClient } from './client'
+import api from './client'
 
-export interface Company {
-  company_id: string
-  owner_id: number
+export interface CreateCompanyRequest {
   company_name: string
   company_code: string
   email?: string
@@ -12,129 +10,192 @@ export interface Company {
   city?: string
   state?: string
   pincode?: string
-  country?: string
   pan?: string
   gstin?: string
   cin?: string
-  status: string
-  description?: string
-  logo_url?: string
-  website?: string
-  created_at: string
-  updated_at: string
 }
 
-export interface CompanyUser {
+export interface CompanyResponse {
+  company_id: string
+  company_name: string
+  company_code: string
+  email?: string
+  phone?: string
+  city?: string
+  state?: string
+  status: string
+  created_at: string
+}
+
+export interface CreateBranchRequest {
+  branch_name: string
+  branch_code: string
+  email?: string
+  phone?: string
+  address_line1?: string
+  address_line2?: string
+  city?: string
+  state?: string
+  pincode?: string
+  is_head_office?: boolean
+  manager_id?: number
+}
+
+export interface BranchResponse {
+  branch_id: string
+  branch_name: string
+  branch_code: string
+  email?: string
+  phone?: string
+  city?: string
+  state?: string
+  is_head_office: boolean
+  status: string
+  created_at: string
+}
+
+export interface TeamMemberResponse {
   company_user_id: string
   user_id: number
+  first_name: string
+  last_name: string
+  email: string
+  phone?: string
   role: string
   status: string
   joined_at?: string
 }
 
-export interface CompanyClient {
-  client_id: string
-  client_name: string
-  client_code: string
-  email?: string
+export interface AddTeamMemberRequest {
+  email: string
+  first_name: string
+  last_name: string
   phone?: string
-  status: string
+  role: string
+  branch_id?: string
 }
 
-export interface CompanyBranch {
-  branch_id: string
-  branch_name: string
-  branch_code: string
-  city?: string
-  state?: string
-  is_head_office: boolean
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
+
+// Document Request Tickets
+export interface DocumentRequestTicketResponse {
+  ticket_id: string
+  company_id: string
+  client_id: string
+  requested_by_user_id: number
+  document_types: string[]
+  description?: string
+  priority: string
   status: string
+  assigned_to_user_id?: number
+  completed_at?: string
+  completed_by_user_id?: number
+  completion_notes?: string
+  created_at: string
+  updated_at: string
+}
+
+export interface CreateDocumentRequestRequest {
+  document_types: string[]
+  description?: string
+  priority?: string
+}
+
+export interface UpdateDocumentRequestRequest {
+  status?: string
+  assigned_to_user_id?: number
+  completion_notes?: string
 }
 
 export const companiesApi = {
-  // List all companies for the current owner
-  listCompanies: async (): Promise<Company[]> => {
-    const response = await apiClient.get('/api/v1/companies')
+  // Companies
+  listCompanies: async (): Promise<CompanyResponse[]> => {
+    const response = await api.get(`${API_URL}/api/v1/companies`)
     return response.data
   },
 
-  // Get a specific company
-  getCompany: async (companyId: string): Promise<Company> => {
-    const response = await apiClient.get(`/api/v1/companies/${companyId}`)
+  createCompany: async (data: CreateCompanyRequest): Promise<CompanyResponse> => {
+    const response = await api.post(`${API_URL}/api/v1/companies`, data)
     return response.data
   },
 
-  // Create a new company
-  createCompany: async (data: Partial<Company>): Promise<Company> => {
-    const response = await apiClient.post('/api/v1/companies', data)
+  getCompany: async (companyId: string): Promise<CompanyResponse> => {
+    const response = await api.get(`${API_URL}/api/v1/companies/${companyId}`)
     return response.data
   },
 
-  // Update a company
-  updateCompany: async (companyId: string, data: Partial<Company>): Promise<Company> => {
-    const response = await apiClient.put(`/api/v1/companies/${companyId}`, data)
+  updateCompany: async (companyId: string, data: CreateCompanyRequest): Promise<CompanyResponse> => {
+    const response = await api.patch(`${API_URL}/api/v1/companies/${companyId}`, data)
     return response.data
   },
 
-  // Delete a company
   deleteCompany: async (companyId: string): Promise<void> => {
-    await apiClient.delete(`/api/v1/companies/${companyId}`)
+    await api.delete(`${API_URL}/api/v1/companies/${companyId}`)
   },
 
-  // List team members (employees/managers) in a company
-  listTeamMembers: async (companyId: string): Promise<CompanyUser[]> => {
-    const response = await apiClient.get(`/api/v1/companies/${companyId}/team-members`)
+  // Branches
+  listBranches: async (companyId: string): Promise<BranchResponse[]> => {
+    const response = await api.get(`${API_URL}/api/v1/companies/${companyId}/branches`)
     return response.data
   },
 
-  // Add an employee to a company
-  addEmployee: async (companyId: string, data: { user_id: number; role: string }): Promise<CompanyUser> => {
-    const response = await apiClient.post(`/api/v1/companies/${companyId}/employees`, data)
+  createBranch: async (companyId: string, data: CreateBranchRequest): Promise<BranchResponse> => {
+    const response = await api.post(`${API_URL}/api/v1/companies/${companyId}/branches`, data)
     return response.data
   },
 
-  // Add a manager to a company
-  addManager: async (companyId: string, data: { user_id: number }): Promise<CompanyUser> => {
-    const response = await apiClient.post(`/api/v1/companies/${companyId}/managers`, data)
+  getBranch: async (companyId: string, branchId: string): Promise<BranchResponse> => {
+    const response = await api.get(`${API_URL}/api/v1/companies/${companyId}/branches/${branchId}`)
     return response.data
   },
 
-  // Remove a team member from a company
-  removeTeamMember: async (companyId: string, userId: number): Promise<void> => {
-    await apiClient.delete(`/api/v1/companies/${companyId}/team-members/${userId}`)
-  },
-
-  // List clients of a company
-  listClients: async (companyId: string): Promise<CompanyClient[]> => {
-    const response = await apiClient.get(`/api/v1/companies/${companyId}/clients`)
-    return response.data
-  },
-
-  // Add a client to a company
-  addClient: async (companyId: string, data: Partial<CompanyClient>): Promise<CompanyClient> => {
-    const response = await apiClient.post(`/api/v1/companies/${companyId}/clients`, data)
-    return response.data
-  },
-
-  // Delete a client from a company
-  deleteClient: async (companyId: string, clientId: string): Promise<void> => {
-    await apiClient.delete(`/api/v1/companies/${companyId}/clients/${clientId}`)
-  },
-
-  // List branches of a company
-  listBranches: async (companyId: string): Promise<CompanyBranch[]> => {
-    const response = await apiClient.get(`/api/v1/companies/${companyId}/branches`)
-    return response.data
-  },
-
-  // Create a branch for a company
-  createBranch: async (companyId: string, data: Partial<CompanyBranch>): Promise<CompanyBranch> => {
-    const response = await apiClient.post(`/api/v1/companies/${companyId}/branches`, data)
-    return response.data
-  },
-
-  // Delete a branch
   deleteBranch: async (companyId: string, branchId: string): Promise<void> => {
-    await apiClient.delete(`/api/v1/companies/${companyId}/branches/${branchId}`)
+    await api.delete(`${API_URL}/api/v1/companies/${companyId}/branches/${branchId}`)
+  },
+
+  // Team Members
+  listTeamMembers: async (companyId: string): Promise<TeamMemberResponse[]> => {
+    const response = await api.get(`${API_URL}/api/v1/companies/${companyId}/team`)
+    return response.data
+  },
+
+  addTeamMember: async (companyId: string, data: AddTeamMemberRequest): Promise<TeamMemberResponse> => {
+    const response = await api.post(`${API_URL}/api/v1/companies/${companyId}/team/employees`, data)
+    return response.data
+  },
+
+  removeTeamMember: async (companyId: string, userId: number): Promise<void> => {
+    await api.delete(`${API_URL}/api/v1/companies/${companyId}/team/${userId}`)
+  },
+
+  // Document Request Tickets
+  createDocumentRequest: async (
+    companyId: string,
+    clientId: string,
+    data: CreateDocumentRequestRequest
+  ): Promise<DocumentRequestTicketResponse> => {
+    const response = await api.post(
+      `${API_URL}/api/v1/companies/${companyId}/clients/${clientId}/document-request`,
+      data
+    )
+    return response.data
+  },
+
+  listDocumentRequests: async (companyId: string, statusFilter?: string): Promise<DocumentRequestTicketResponse[]> => {
+    const params = statusFilter ? `?status_filter=${statusFilter}` : ''
+    const response = await api.get(`${API_URL}/api/v1/companies/${companyId}/document-requests${params}`)
+    return response.data
+  },
+
+  updateDocumentRequest: async (
+    companyId: string,
+    ticketId: string,
+    data: UpdateDocumentRequestRequest
+  ): Promise<DocumentRequestTicketResponse> => {
+    const response = await api.patch(
+      `${API_URL}/api/v1/companies/${companyId}/document-requests/${ticketId}`,
+      data
+    )
+    return response.data
   },
 }

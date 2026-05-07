@@ -1,8 +1,11 @@
 import { useAuthStoreV2 } from '@/store/authStoreV2'
 import { FileText, CheckCircle, Clock, AlertCircle, Download, MessageSquare } from 'lucide-react'
+import DocumentRequestForm from '@/components/client/DocumentRequestForm'
+import { useState } from 'react'
 
 export default function ClientDashboardV2() {
   const { user, company } = useAuthStoreV2()
+  const [showDocumentForm, setShowDocumentForm] = useState(false)
 
   const tasks = [
     { id: 1, title: 'GST Return Filing', status: 'completed', dueDate: '2026-04-15', progress: 100 },
@@ -156,6 +159,32 @@ export default function ClientDashboardV2() {
             </button>
           </div>
         </div>
+
+        {/* Document Request Section */}
+        {!showDocumentForm ? (
+          <div className="mt-8 bg-slate-800 rounded-lg border border-slate-700 p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-xl font-bold text-white mb-2">Request Documents</h3>
+                <p className="text-slate-400">Need to submit documents? Request them from your CA firm</p>
+              </div>
+              <button
+                onClick={() => setShowDocumentForm(true)}
+                className="flex items-center gap-2 px-6 py-3 bg-brand-600 hover:bg-brand-700 text-white rounded-lg transition-colors"
+              >
+                <FileText size={20} />
+                Request Documents
+              </button>
+            </div>
+          </div>
+        ) : (
+          <div className="mt-8">
+            <DocumentRequestForm
+              clientId={company?.company_id || ''}
+              onClose={() => setShowDocumentForm(false)}
+            />
+          </div>
+        )}
       </div>
     </div>
   )

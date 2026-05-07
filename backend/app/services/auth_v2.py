@@ -275,16 +275,17 @@ async def login_user(db: AsyncSession, data: LoginRequest) -> LoginResponse:
     user.locked_until = None
     user.last_login_at = datetime.now(timezone.utc)
 
-    # Get company and branch info for the user
+    # Get company and branch info for the user (get most recent if multiple)
     company_user_result = await db.execute(
-        select(CompanyUser).where(CompanyUser.user_id == user.user_id)
+        select(CompanyUser).where(CompanyUser.user_id == user.user_id).order_by(CompanyUser.created_at.desc()).limit(1)
     )
     company_user = company_user_result.scalar_one_or_none()
     
+    # Default company info (fallback if user has no company assignment)
     company_info = {
-        "company_id": "default-company",
-        "company_name": "Default Company",
-        "company_code": "DEFAULT",
+        "company_id": None,
+        "company_name": None,
+        "company_code": None,
         "role": "OWNER" if user.is_owner else "EMPLOYEE",
         "branch_id": None,
         "branch_name": None,
@@ -319,6 +320,22 @@ async def login_user(db: AsyncSession, data: LoginRequest) -> LoginResponse:
                 "role": role.role_name if role else ("OWNER" if user.is_owner else "EMPLOYEE"),
                 "branch_id": str(company_user.branch_id) if company_user.branch_id else None,
                 "branch_name": branch_info.branch_name if branch_info else None,
+            }
+    elif user.is_owner:
+        # For owners with no company assignment, get their first owned company
+        owner_company_result = await db.execute(
+            select(Company).where(Company.owner_id == user.user_id).limit(1)
+        )
+        owner_company = owner_company_result.scalar_one_or_none()
+        
+        if owner_company:
+            company_info = {
+                "company_id": str(owner_company.company_id),
+                "company_name": owner_company.company_name,
+                "company_code": owner_company.company_code,
+                "role": "OWNER",
+                "branch_id": None,
+                "branch_name": None,
             }
 
     # Create tokens
@@ -442,12 +459,21 @@ async def add_team_member(
     """
     Add a team member to a company (owner/manager only)
     """
+    # Convert company_id to UUID
+    try:
+        company_uuid = uuid.UUID(company_id)
+    except ValueError:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid company ID format"
+        )
+    
     # Verify user has permission
     company_user_result = await db.execute(
         select(CompanyUser).where(
             and_(
                 CompanyUser.user_id == user_id,
-                CompanyUser.company_id == company_id,
+                CompanyUser.company_id == company_uuid,
             )
         )
     )
@@ -483,7 +509,7 @@ async def add_team_member(
             select(CompanyUser).where(
                 and_(
                     CompanyUser.user_id == existing.user_id,
-                    CompanyUser.company_id == company_id,
+                    CompanyUser.company_id == company_uuid,
                 )
             )
         )
@@ -514,7 +540,7 @@ async def add_team_member(
     target_role_result = await db.execute(
         select(CompanyRole).where(
             and_(
-                CompanyRole.company_id == company_id,
+                CompanyRole.company_id == company_uuid,
                 CompanyRole.role_name == data.role,
             )
         )
@@ -527,17 +553,32 @@ async def add_team_member(
             detail="Invalid role"
         )
 
+    # Convert branch_id to UUID if provided
+    branch_uuid = None
+    if data.branch_id:
+        try:
+            branch_uuid = uuid.UUID(data.branch_id)
+        except ValueError:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Invalid branch ID format"
+            )
+
     # Add user to company
     new_company_user = CompanyUser(
         company_user_id=uuid.uuid4(),
-        company_id=company_id,
+        company_id=company_uuid,
         user_id=new_user.user_id,
         role_id=target_role.role_id,
-        branch_id=data.branch_id,
+        branch_id=branch_uuid,
         status=UserStatusEnum.INVITED if new_user.status == "INVITED" else UserStatusEnum.ACTIVE,
         invited_at=datetime.now(timezone.utc),
     )
     db.add(new_company_user)
+    await db.flush()
+    
+    # Refresh to get relationships loaded
+    await db.refresh(new_company_user, ['user', 'role'])
     await db.commit()
 
     return TeamMemberOut.from_orm(new_company_user)
@@ -554,12 +595,21 @@ async def add_client(
     """
     Add a client to a company (owner/manager only)
     """
+    # Convert company_id to UUID
+    try:
+        company_uuid = uuid.UUID(company_id)
+    except ValueError:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid company ID format"
+        )
+    
     # Verify user has permission
     company_user_result = await db.execute(
         select(CompanyUser).where(
             and_(
                 CompanyUser.user_id == user_id,
-                CompanyUser.company_id == company_id,
+                CompanyUser.company_id == company_uuid,
             )
         )
     )
@@ -574,7 +624,7 @@ async def add_client(
     # Create client
     client = CompanyClient(
         client_id=uuid.uuid4(),
-        company_id=company_id,
+        company_id=company_uuid,
         client_name=data.client_name,
         client_code=data.client_code,
         email=data.email,
@@ -601,27 +651,42 @@ async def create_branch(
     """
     Create a branch for a company (owner/manager only)
     """
-    # Verify user has permission
+    # Convert company_id string to UUID
+    try:
+        company_uuid = uuid.UUID(company_id)
+    except ValueError:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid company ID format"
+        )
+    
+    # Verify user has permission (owner or manager)
     company_user_result = await db.execute(
         select(CompanyUser).where(
             and_(
                 CompanyUser.user_id == user_id,
-                CompanyUser.company_id == company_id,
+                CompanyUser.company_id == company_uuid,
             )
         )
     )
     company_user = company_user_result.scalar_one_or_none()
 
     if not company_user:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="User not associated with this company"
+        # Also check if user is the owner
+        company_result = await db.execute(
+            select(Company).where(Company.company_id == company_uuid)
         )
+        company = company_result.scalar_one_or_none()
+        if not company or company.owner_id != user_id:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="User not associated with this company"
+            )
 
     # Create branch
     branch = CompanyBranch(
         branch_id=uuid.uuid4(),
-        company_id=company_id,
+        company_id=company_uuid,
         branch_name=data.branch_name,
         branch_code=data.branch_code,
         email=data.email,
@@ -652,6 +717,26 @@ async def change_company_branch(
     """
     Change user's company and branch (owner only)
     """
+    # Convert company_id to UUID
+    try:
+        company_uuid = uuid.UUID(company_id)
+    except ValueError:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid company ID format"
+        )
+    
+    # Convert branch_id to UUID if provided
+    branch_uuid = None
+    if branch_id:
+        try:
+            branch_uuid = uuid.UUID(branch_id)
+        except ValueError:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Invalid branch ID format"
+            )
+    
     # Get user
     user_result = await db.execute(
         select(User).where(User.user_id == user_id)
@@ -666,7 +751,7 @@ async def change_company_branch(
 
     # Verify company exists
     company_result = await db.execute(
-        select(Company).where(Company.company_id == company_id)
+        select(Company).where(Company.company_id == company_uuid)
     )
     company = company_result.scalar_one_or_none()
 
@@ -676,31 +761,63 @@ async def change_company_branch(
             detail="Company not found"
         )
 
-    # Verify user is associated with this company
+    # Verify user is associated with this company (or is the owner)
     company_user_result = await db.execute(
         select(CompanyUser).where(
             and_(
                 CompanyUser.user_id == user_id,
-                CompanyUser.company_id == company_id,
+                CompanyUser.company_id == company_uuid,
             )
         )
     )
     company_user = company_user_result.scalar_one_or_none()
 
+    # If user is not in CompanyUser table but is the owner, create an entry
     if not company_user:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="User not associated with this company"
+        if company.owner_id != user_id:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="User not associated with this company"
+            )
+        
+        # Create CompanyUser entry for owner
+        # Get or create OWNER role for this company
+        owner_role_result = await db.execute(
+            select(CompanyRole).where(
+                and_(
+                    CompanyRole.company_id == company_uuid,
+                    CompanyRole.role_name == "OWNER",
+                )
+            )
         )
+        owner_role = owner_role_result.scalar_one_or_none()
+        
+        if not owner_role:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="OWNER role not found for company"
+            )
+        
+        # Create CompanyUser entry
+        company_user = CompanyUser(
+            company_user_id=uuid.uuid4(),
+            company_id=company_uuid,
+            user_id=user_id,
+            role_id=owner_role.role_id,
+            status="ACTIVE",
+            joined_at=datetime.now(timezone.utc),
+        )
+        db.add(company_user)
+        await db.flush()
 
     # Verify branch exists if provided
     branch_info = None
-    if branch_id:
+    if branch_uuid:
         branch_result = await db.execute(
             select(CompanyBranch).where(
                 and_(
-                    CompanyBranch.branch_id == branch_id,
-                    CompanyBranch.company_id == company_id,
+                    CompanyBranch.branch_id == branch_uuid,
+                    CompanyBranch.company_id == company_uuid,
                 )
             )
         )
@@ -713,7 +830,7 @@ async def change_company_branch(
             )
 
     # Update company user's branch
-    company_user.branch_id = branch_id
+    company_user.branch_id = branch_uuid
     await db.commit()
 
     # Get role details
@@ -727,6 +844,6 @@ async def change_company_branch(
         company_name=company.company_name,
         company_code=company.company_code,
         role=role.role_name if role else "OWNER",
-        branch_id=str(branch_id) if branch_id else None,
+        branch_id=str(branch_uuid) if branch_uuid else None,
         branch_name=branch_info.branch_name if branch_info else None,
     )

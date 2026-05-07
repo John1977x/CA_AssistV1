@@ -1,8 +1,11 @@
 import { useAuthStoreV2 } from '@/store/authStoreV2'
-import { CheckCircle, Clock, AlertCircle, Users, TrendingUp } from 'lucide-react'
+import { CheckCircle, Clock, AlertCircle, Users, TrendingUp, Calendar } from 'lucide-react'
+import DocumentRequestsWidget from '@/components/owner/DocumentRequestsWidget'
 
 export default function EmployeeDashboardV2() {
   const { user, company } = useAuthStoreV2()
+  const hour = new Date().getHours()
+  const greeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening'
 
   const myTasks = [
     { id: 1, title: 'GST Return - ABC Corp', client: 'ABC Corporation', status: 'completed', dueDate: '2026-04-15', priority: 'high' },
@@ -64,79 +67,88 @@ export default function EmployeeDashboardV2() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
-      {/* Header */}
-      <div className="bg-slate-800 border-b border-slate-700 p-6">
-        <div className="max-w-7xl mx-auto">
-          <h1 className="text-3xl font-bold text-white mb-2">
-            Welcome back, {user?.first_name}!
-          </h1>
-          <p className="text-slate-400">Here's your task overview and team information</p>
+    <div className="p-6 max-w-7xl mx-auto space-y-6">
+      {/* Welcome */}
+      <div className="bg-gradient-to-r from-brand-800 to-brand-700 rounded-2xl p-6 text-white">
+        <h2 className="text-xl font-bold mb-1">
+          {greeting}, {user?.first_name}! 👋
+        </h2>
+        <p className="text-brand-200 text-sm">Here's your task overview and team information</p>
+        <div className="mt-4 flex items-center gap-3">
+          <div className="bg-white/10 rounded-lg px-3 py-1.5 text-xs font-medium">
+            <Calendar size={12} className="inline mr-1" />
+            {new Date().toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
+          </div>
+          {company && (
+            <div className="bg-blue-400/20 text-blue-200 rounded-lg px-3 py-1.5 text-xs font-medium">
+              📊 {company.company_name}
+            </div>
+          )}
         </div>
       </div>
 
-      {/* Main Content */}
-      <div className="max-w-7xl mx-auto p-6">
-        {/* Stats Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          {stats.map((stat, idx) => {
-            const Icon = stat.icon
-            return (
-              <div key={idx} className="bg-slate-800 rounded-lg p-6 border border-slate-700 hover:border-slate-600 transition-colors">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-slate-400 text-sm mb-1">{stat.label}</p>
-                    <p className="text-3xl font-bold text-white">{stat.value}</p>
-                  </div>
-                  <div className={`${stat.color} p-3 rounded-lg`}>
-                    <Icon className="text-white" size={24} />
-                  </div>
+      {/* Stats Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        {stats.map((stat, idx) => {
+          const Icon = stat.icon
+          return (
+            <div key={idx} className="card p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-slate-600 text-sm mb-1">{stat.label}</p>
+                  <p className="text-3xl font-bold text-slate-900">{stat.value}</p>
+                </div>
+                <div className={`${stat.color} p-3 rounded-lg`}>
+                  <Icon className="text-white" size={24} />
                 </div>
               </div>
-            )
-          })}
-        </div>
+            </div>
+          )
+        })}
+      </div>
 
-        {/* Tasks and Team */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* My Tasks */}
-          <div className="lg:col-span-2 bg-slate-800 rounded-lg border border-slate-700 p-6">
-            <h2 className="text-xl font-bold text-white mb-4">My Tasks</h2>
-            <div className="space-y-3">
-              {myTasks.map((task) => (
-                <div
-                  key={task.id}
-                  className="flex items-center justify-between p-4 bg-slate-700 rounded-lg hover:bg-slate-650 transition-colors"
-                >
-                  <div className="flex items-center gap-3 flex-1">
-                    {getStatusIcon(task.status)}
-                    <div className="flex-1">
-                      <h3 className="text-white font-semibold text-sm">{task.title}</h3>
-                      <p className="text-slate-400 text-xs">{task.client}</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <span className={`px-2 py-1 rounded text-xs font-medium ${getPriorityColor(task.priority)}`}>
-                      {task.priority.charAt(0).toUpperCase() + task.priority.slice(1)}
-                    </span>
-                    <span className={`px-2 py-1 rounded text-xs font-medium ${getStatusColor(task.status)}`}>
-                      {task.status.charAt(0).toUpperCase() + task.status.slice(1)}
-                    </span>
-                    <span className="text-slate-400 text-xs whitespace-nowrap">{task.dueDate}</span>
+      {/* Tasks and Team */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* My Tasks */}
+        <div className="lg:col-span-2 card p-6">
+          <h2 className="text-lg font-bold text-slate-900 mb-4">My Tasks</h2>
+          <div className="space-y-3">
+            {myTasks.map((task) => (
+              <div
+                key={task.id}
+                className="flex items-center justify-between p-4 bg-slate-50 rounded-lg hover:bg-slate-100 transition-colors"
+              >
+                <div className="flex items-center gap-3 flex-1">
+                  {getStatusIcon(task.status)}
+                  <div className="flex-1">
+                    <h3 className="text-slate-900 font-semibold text-sm">{task.title}</h3>
+                    <p className="text-slate-500 text-xs">{task.client}</p>
                   </div>
                 </div>
-              ))}
-            </div>
+                <div className="flex items-center gap-3">
+                  <span className={`px-2 py-1 rounded text-xs font-medium ${getPriorityColor(task.priority)}`}>
+                    {task.priority.charAt(0).toUpperCase() + task.priority.slice(1)}
+                  </span>
+                  <span className={`px-2 py-1 rounded text-xs font-medium ${getStatusColor(task.status)}`}>
+                    {task.status.charAt(0).toUpperCase() + task.status.slice(1)}
+                  </span>
+                  <span className="text-slate-500 text-xs whitespace-nowrap">{task.dueDate}</span>
+                </div>
+              </div>
+            ))}
           </div>
+        </div>
 
+        {/* Right Column - Team and Document Requests */}
+        <div className="space-y-6">
           {/* Team Members */}
-          <div className="bg-slate-800 rounded-lg border border-slate-700 p-6">
-            <h2 className="text-xl font-bold text-white mb-4">Team Members</h2>
+          <div className="card p-6">
+            <h2 className="text-lg font-bold text-slate-900 mb-4">Team Members</h2>
             <div className="space-y-3">
               {teamMembers.map((member) => (
                 <div
                   key={member.id}
-                  className="flex items-center justify-between p-3 bg-slate-700 rounded-lg hover:bg-slate-650 transition-colors"
+                  className="flex items-center justify-between p-3 bg-slate-50 rounded-lg hover:bg-slate-100 transition-colors"
                 >
                   <div className="flex items-center gap-3 flex-1">
                     <div className="w-8 h-8 bg-brand-600 rounded-full flex items-center justify-center">
@@ -145,15 +157,18 @@ export default function EmployeeDashboardV2() {
                       </span>
                     </div>
                     <div className="flex-1">
-                      <p className="text-white font-semibold text-sm">{member.name}</p>
-                      <p className="text-slate-400 text-xs">{member.role}</p>
+                      <p className="text-slate-900 font-semibold text-sm">{member.name}</p>
+                      <p className="text-slate-500 text-xs">{member.role}</p>
                     </div>
                   </div>
-                  <div className={`w-2 h-2 rounded-full ${member.status === 'online' ? 'bg-green-500' : 'bg-slate-500'}`}></div>
+                  <div className={`w-2 h-2 rounded-full ${member.status === 'online' ? 'bg-green-500' : 'bg-slate-400'}`}></div>
                 </div>
               ))}
             </div>
           </div>
+
+          {/* Document Requests Widget */}
+          <DocumentRequestsWidget />
         </div>
       </div>
     </div>

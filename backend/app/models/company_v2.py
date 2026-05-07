@@ -73,6 +73,7 @@ class Company(Base):
     company_users = relationship("CompanyUser", back_populates="company", cascade="all, delete-orphan")
     company_clients = relationship("CompanyClient", back_populates="company", cascade="all, delete-orphan")
     company_roles = relationship("CompanyRole", back_populates="company", cascade="all, delete-orphan")
+    document_request_tickets = relationship("DocumentRequestTicket", back_populates="company", cascade="all, delete-orphan")
 
 
 class CompanyBranch(Base):
@@ -190,3 +191,43 @@ class CompanyClient(Base):
     company = relationship("Company", back_populates="company_clients")
     user = relationship("User", foreign_keys=[user_id])
     assigned_manager = relationship("User", foreign_keys=[assigned_manager_id])
+
+
+class DocumentRequestTicket(Base):
+    """
+    Document Request Ticket - Clients can request documents from company
+    Owners/Employees can view and fulfill these requests
+    """
+    __tablename__ = "document_request_tickets"
+
+    ticket_id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    company_id = Column(UUID(as_uuid=True), ForeignKey("company.company_id"), nullable=False, index=True)
+    client_id = Column(UUID(as_uuid=True), ForeignKey("company_client.client_id"), nullable=False, index=True)
+    requested_by_user_id = Column(Integer, ForeignKey("user.user_id"), nullable=False)  # Client user
+    
+    # Document types requested (comma-separated or JSON array)
+    document_types = Column(JSONB, nullable=False)  # ["PAN", "TAN", "COMPANY_ESTABLISHED_DATE"]
+    
+    # Request details
+    description = Column(Text)
+    priority = Column(String(20), nullable=False, default="NORMAL")  # URGENT, NORMAL, LOW
+    status = Column(String(20), nullable=False, default="OPEN")  # OPEN, IN_PROGRESS, COMPLETED, REJECTED
+    
+    # Assignment
+    assigned_to_user_id = Column(Integer, ForeignKey("user.user_id"))  # Owner/Employee assigned
+    
+    # Fulfillment
+    completed_at = Column(DateTime(timezone=True))
+    completed_by_user_id = Column(Integer, ForeignKey("user.user_id"))
+    completion_notes = Column(Text)
+    
+    # Metadata
+    created_at = Column(DateTime(timezone=True), nullable=False, server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), nullable=False, server_default=func.now(), onupdate=func.now())
+
+    # Relationships
+    company = relationship("Company", back_populates="document_request_tickets")
+    client = relationship("CompanyClient")
+    requested_by = relationship("User", foreign_keys=[requested_by_user_id])
+    assigned_to = relationship("User", foreign_keys=[assigned_to_user_id])
+    completed_by = relationship("User", foreign_keys=[completed_by_user_id])

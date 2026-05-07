@@ -31,6 +31,9 @@ import BranchesPage from '@/pages/BranchesPage'
 import CustomersPage from '@/pages/customers/CustomersPage'
 import OwnerClientsPage from '@/pages/owner/OwnerClientsPage'
 import OwnerEmployeesPage from '@/pages/owner/OwnerEmployeesPage'
+import OwnerCompanyPage from '@/pages/owner/OwnerCompanyPage'
+import OwnerBranchPage from '@/pages/owner/OwnerBranchPage'
+import DocumentRequestsPage from '@/pages/owner/DocumentRequestsPage'
 import ManagerClientsPage from '@/pages/manager/ManagerClientsPage'
 import EmployeeClientsPage from '@/pages/employee/EmployeeClientsPage'
 import EnquiriesPage from '@/pages/enquiries/EnquiriesPage'
@@ -87,6 +90,11 @@ export default function AppRoutes() {
         
         {/* Role-Specific Employee Pages */}
         <Route path="/owner/employees" element={<OwnerEmployeesPage />} />
+        
+        {/* Owner Company and Branch Pages */}
+        <Route path="/owner/company" element={<OwnerCompanyPage />} />
+        <Route path="/owner/branch" element={<OwnerBranchPage />} />
+        <Route path="/owner/document-requests" element={<DocumentRequestsPage />} />
         
         <Route path="/enquiries" element={<EnquiriesPage />} />
         <Route path="/tasks" element={<TasksPage />} />

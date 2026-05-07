@@ -8,9 +8,8 @@ import {
   Loader2, UserPlus, ChevronLeft, ChevronRight, RefreshCw,
 } from 'lucide-react'
 import toast from 'react-hot-toast'
-import { usersApi, rolesApi, branchesApi } from '@/api/users'
-import { useAuthStore } from '@/store/authStore'
-import type { User, UserCreateForm } from '@/types/auth'
+import { companiesApi } from '@/api/companies'
+import { useAuthStoreV2 } from '@/store/authStoreV2'
 import clsx from 'clsx'
 
 const STATUS_BADGE: Record<string, string> = {
@@ -25,30 +24,33 @@ const inviteSchema = z.object({
   last_name:  z.string().min(1, 'Required'),
   email:      z.string().email('Valid email required'),
   phone:      z.string().optional(),
-  role_id:    z.number().optional(),
-  branch_id:  z.number().optional(),
-  designation: z.string().optional(),
-  membership_number: z.string().optional(),
-  is_owner:   z.boolean().optional(),
+  role:       z.string().default('EMPLOYEE'),
+  branch_id:  z.string().optional(),
 })
 
-function InviteModal({ onClose }: { onClose: () => void }) {
+function InviteModal({ companyId, onClose }: { companyId: string; onClose: () => void }) {
   const qc = useQueryClient()
-  const { data: roles = [] } = useQuery({ queryKey: ['roles'], queryFn: rolesApi.list })
-  const { data: branches = [] } = useQuery({ queryKey: ['branches'], queryFn: branchesApi.list })
-
-  const { register, handleSubmit, watch, formState: { errors } } = useForm<UserCreateForm & { is_owner?: boolean }>({
-    resolver: zodResolver(inviteSchema),
+  const { data: branches = [] } = useQuery({
+    queryKey: ['branches', companyId],
+    queryFn: () => companiesApi.listBranches(companyId),
   })
 
-  const isOwner = watch('is_owner')
+  const { register, handleSubmit, formState: { errors } } = useForm({
+    resolver: zodResolver(inviteSchema),
+    defaultValues: {
+      role: 'EMPLOYEE',
+    },
+  })
 
   const invite = useMutation({
-    mutationFn: (data: UserCreateForm & { is_owner?: boolean }) => usersApi.invite(data as any),
+    mutationFn: (data: any) => companiesApi.addTeamMember(companyId, data),
     onSuccess: () => {
       toast.success('Employee added successfully!')
-      qc.invalidateQueries({ queryKey: ['users'] })
+      qc.invalidateQueries({ queryKey: ['teamMembers', companyId] })
       onClose()
+    },
+    onError: (error: any) => {
+      toast.error(error.response?.data?.detail || 'Failed to add employee')
     },
   })
 
@@ -58,7 +60,7 @@ function InviteModal({ onClose }: { onClose: () => void }) {
         <div className="sticky top-0 bg-white border-b border-slate-100 px-6 py-4 flex items-center justify-between rounded-t-2xl">
           <div>
             <h2 className="text-lg font-bold text-slate-900">Add New Employee</h2>
-            <p className="text-sm text-slate-500">Add a team member to your firm</p>
+            <p className="text-sm text-slate-500">Add a team member to your company</p>
           </div>
           <button onClick={onClose} className="text-slate-400 hover:text-slate-600 text-xl font-medium">✕</button>
         </div>
@@ -89,39 +91,17 @@ function InviteModal({ onClose }: { onClose: () => void }) {
           </div>
 
           <div>
-            <label className="label">Employee Type *</label>
-            <div className="space-y-2">
-              <label className="flex items-center gap-3 p-3 border border-slate-200 rounded-lg cursor-pointer hover:bg-slate-50 transition-colors">
-                <input
-                  type="radio"
-                  value="false"
-                  {...register('is_owner')}
-                  className="w-4 h-4 rounded-full border-slate-300 text-brand-600"
-                />
-                <div>
-                  <p className="font-medium text-slate-900 text-sm">Employee</p>
-                  <p className="text-xs text-slate-500">Regular team member with limited access</p>
-                </div>
-              </label>
-              <label className="flex items-center gap-3 p-3 border border-slate-200 rounded-lg cursor-pointer hover:bg-slate-50 transition-colors">
-                <input
-                  type="radio"
-                  value="true"
-                  {...register('is_owner')}
-                  className="w-4 h-4 rounded-full border-slate-300 text-brand-600"
-                />
-                <div>
-                  <p className="font-medium text-slate-900 text-sm">Manager</p>
-                  <p className="text-xs text-slate-500">Full access to firm settings and all features</p>
-                </div>
-              </label>
-            </div>
+            <label className="label">Role *</label>
+            <select {...register('role')} className="input">
+              <option value="EMPLOYEE">Employee</option>
+              <option value="MANAGER">Manager</option>
+            </select>
           </div>
 
           {branches.length > 0 && (
             <div>
               <label className="label">Branch</label>
-              <select {...register('branch_id', { valueAsNumber: true })} className="input">
+              <select {...register('branch_id')} className="input">
                 <option value="">All branches</option>
                 {branches.map(b => (
                   <option key={b.branch_id} value={b.branch_id}>{b.branch_name}</option>
@@ -129,16 +109,6 @@ function InviteModal({ onClose }: { onClose: () => void }) {
               </select>
             </div>
           )}
-
-          <div>
-            <label className="label">Designation</label>
-            <input {...register('designation')} className="input" placeholder="e.g. Article Assistant, Manager" />
-          </div>
-
-          <div>
-            <label className="label">ICAI Membership Number</label>
-            <input {...register('membership_number')} className="input" placeholder="Optional" />
-          </div>
 
           <div className="flex gap-3 pt-2">
             <button type="button" onClick={onClose} className="btn-secondary flex-1">Cancel</button>
@@ -152,51 +122,42 @@ function InviteModal({ onClose }: { onClose: () => void }) {
   )
 }
 
-function UserRow({ user, onDelete }: { user: User; onDelete: (id: number) => void }) {
+function UserRow({ member, companyId, onDelete }: { member: any; companyId: string; onDelete: (userId: number) => void }) {
   const [menuOpen, setMenuOpen] = useState(false)
-  const currentUser = useAuthStore(s => s.user)
 
-  const initials = `${user.first_name[0]}${user.last_name[0]}`.toUpperCase()
-  const isSelf = currentUser?.user_id === user.user_id
+  const initials = `${member.first_name[0]}${member.last_name[0]}`.toUpperCase()
 
   return (
     <tr className="hover:bg-slate-50 transition-colors">
       <td className="table-td">
         <div className="flex items-center gap-3">
-          {user.avatar_url
-            ? <img src={user.avatar_url} alt="" className="w-8 h-8 rounded-full object-cover" />
-            : <div className="w-8 h-8 rounded-full bg-brand-100 flex items-center justify-center text-brand-800 text-xs font-bold">
-                {initials}
-              </div>
-          }
+          <div className="w-8 h-8 rounded-full bg-brand-100 flex items-center justify-center text-brand-800 text-xs font-bold">
+            {initials}
+          </div>
           <div>
             <div className="font-medium text-slate-900 text-sm flex items-center gap-2">
-              {user.display_name || `${user.first_name} ${user.last_name}`}
-              {isSelf && <span className="text-xs text-slate-400">(you)</span>}
-              {user.is_owner && <span className="badge-purple text-xs">Manager</span>}
+              {member.first_name} {member.last_name}
+              {member.role === 'MANAGER' && <span className="badge-purple text-xs">Manager</span>}
             </div>
-            <div className="text-xs text-slate-500">{user.email}</div>
+            <div className="text-xs text-slate-500">{member.email}</div>
           </div>
         </div>
-      </td>
-      <td className="table-td text-slate-600">
-        {user.designation || <span className="text-slate-300">—</span>}
       </td>
       <td className="table-td">
         <div className="flex items-center gap-1.5">
           <Shield size={12} className="text-brand-600" />
-          <span className="text-sm text-slate-600">{user.role?.role_name || '—'}</span>
+          <span className="text-sm text-slate-600">{member.role || '—'}</span>
         </div>
       </td>
       <td className="table-td">
-        <span className={STATUS_BADGE[user.status] || 'badge-gray'}>
-          {user.status.charAt(0) + user.status.slice(1).toLowerCase()}
+        <span className={STATUS_BADGE[member.status] || 'badge-gray'}>
+          {member.status.charAt(0) + member.status.slice(1).toLowerCase()}
         </span>
       </td>
       <td className="table-td text-slate-500 text-xs">
-        {user.last_login_at
-          ? new Date(user.last_login_at).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })
-          : 'Never'
+        {member.joined_at
+          ? new Date(member.joined_at).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })
+          : 'Recently'
         }
       </td>
       <td className="table-td">
@@ -215,13 +176,11 @@ function UserRow({ user, onDelete }: { user: User; onDelete: (id: number) => voi
                 <button className="w-full flex items-center gap-2 px-3 py-2 text-sm text-slate-600 hover:bg-slate-50">
                   <Mail size={13} /> Resend Invite
                 </button>
-                {!user.is_owner && !isSelf && (
-                  <button
-                    onClick={() => { onDelete(user.user_id); setMenuOpen(false) }}
-                    className="w-full flex items-center gap-2 px-3 py-2 text-sm text-red-600 hover:bg-red-50">
-                    <Trash2 size={13} /> Remove User
-                  </button>
-                )}
+                <button
+                  onClick={() => { onDelete(member.user_id); setMenuOpen(false) }}
+                  className="w-full flex items-center gap-2 px-3 py-2 text-sm text-red-600 hover:bg-red-50">
+                  <Trash2 size={13} /> Remove User
+                </button>
               </div>
             </>
           )}
@@ -233,28 +192,44 @@ function UserRow({ user, onDelete }: { user: User; onDelete: (id: number) => voi
 
 export default function OwnerEmployeesPage() {
   const qc = useQueryClient()
+  const { company } = useAuthStoreV2()
   const [showInvite, setShowInvite] = useState(false)
   const [search, setSearch] = useState('')
-  const [page, setPage] = useState(1)
-  const [statusFilter, setStatusFilter] = useState('')
 
-  const { data, isLoading, isFetching } = useQuery({
-    queryKey: ['users', page, search, statusFilter],
-    queryFn: () => usersApi.list({ page, page_size: 15, search: search || undefined, status: statusFilter || undefined }),
-    placeholderData: prev => prev,
+  // Redirect if no company selected
+  if (!company) {
+    return (
+      <div className="p-6 max-w-7xl mx-auto">
+        <div className="card p-8 text-center">
+          <p className="text-slate-600">Please select a company first</p>
+        </div>
+      </div>
+    )
+  }
+
+  const { data: members = [], isLoading, isFetching } = useQuery({
+    queryKey: ['teamMembers', company.company_id],
+    queryFn: () => companiesApi.listTeamMembers(company.company_id),
+    enabled: !!company.company_id,
   })
 
   const deleteUser = useMutation({
-    mutationFn: usersApi.delete,
+    mutationFn: (userId: number) => companiesApi.removeTeamMember(company.company_id, userId),
     onSuccess: () => {
-      toast.success('User removed.')
-      qc.invalidateQueries({ queryKey: ['users'] })
+      toast.success('Employee removed.')
+      qc.invalidateQueries({ queryKey: ['teamMembers', company.company_id] })
+    },
+    onError: (error: any) => {
+      toast.error(error.response?.data?.detail || 'Failed to remove employee')
     },
   })
 
-  const users = data?.items || []
-  const total = data?.total || 0
-  const totalPages = data?.total_pages || 1
+  const filteredMembers = members.filter(m =>
+    search === '' || 
+    m.first_name.toLowerCase().includes(search.toLowerCase()) ||
+    m.last_name.toLowerCase().includes(search.toLowerCase()) ||
+    m.email.toLowerCase().includes(search.toLowerCase())
+  )
 
   return (
     <div className="p-6 max-w-7xl mx-auto">
@@ -262,7 +237,7 @@ export default function OwnerEmployeesPage() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
         <div>
           <h1 className="text-xl font-bold text-slate-900">Employees</h1>
-          <p className="text-sm text-slate-500 mt-0.5">{total} employee{total !== 1 ? 's' : ''} in your firm</p>
+          <p className="text-sm text-slate-500 mt-0.5">{filteredMembers.length} employee{filteredMembers.length !== 1 ? 's' : ''} in {company.company_name}</p>
         </div>
         <button onClick={() => setShowInvite(true)} className="btn-primary">
           <UserPlus size={15} /> Add New Employee
@@ -276,22 +251,12 @@ export default function OwnerEmployeesPage() {
             <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
             <input
               value={search}
-              onChange={e => { setSearch(e.target.value); setPage(1) }}
+              onChange={e => setSearch(e.target.value)}
               placeholder="Search by name or email..."
               className="input pl-9"
             />
           </div>
-          <select
-            value={statusFilter}
-            onChange={e => { setStatusFilter(e.target.value); setPage(1) }}
-            className="input w-full sm:w-40"
-          >
-            <option value="">All Status</option>
-            <option value="ACTIVE">Active</option>
-            <option value="INVITED">Invited</option>
-            <option value="INACTIVE">Inactive</option>
-          </select>
-          <button onClick={() => qc.invalidateQueries({ queryKey: ['users'] })}
+          <button onClick={() => qc.invalidateQueries({ queryKey: ['teamMembers', company.company_id] })}
             className={clsx('btn-ghost', isFetching && 'opacity-50')}>
             <RefreshCw size={15} className={isFetching ? 'animate-spin' : ''} />
           </button>
@@ -305,23 +270,22 @@ export default function OwnerEmployeesPage() {
             <thead className="bg-slate-50 border-b border-slate-200">
               <tr>
                 <th className="table-th">Name</th>
-                <th className="table-th">Designation</th>
                 <th className="table-th">Role</th>
                 <th className="table-th">Status</th>
-                <th className="table-th">Last Login</th>
+                <th className="table-th">Joined</th>
                 <th className="table-th w-12"></th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
               {isLoading ? (
                 <tr>
-                  <td colSpan={6} className="py-16 text-center">
+                  <td colSpan={5} className="py-16 text-center">
                     <Loader2 size={24} className="animate-spin text-slate-400 mx-auto" />
                   </td>
                 </tr>
-              ) : users.length === 0 ? (
+              ) : filteredMembers.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="py-16 text-center">
+                  <td colSpan={5} className="py-16 text-center">
                     <div className="text-slate-400">
                       <UserPlus size={32} className="mx-auto mb-3 opacity-40" />
                       <p className="text-sm font-medium">No employees found</p>
@@ -330,39 +294,19 @@ export default function OwnerEmployeesPage() {
                   </td>
                 </tr>
               ) : (
-                users.map(u => (
-                  <UserRow key={u.user_id} user={u}
+                filteredMembers.map(m => (
+                  <UserRow key={m.user_id} member={m} companyId={company.company_id}
                     onDelete={id => {
-                      if (confirm('Remove this user from your firm?')) deleteUser.mutate(id)
+                      if (confirm('Remove this employee from the company?')) deleteUser.mutate(id)
                     }} />
                 ))
               )}
             </tbody>
           </table>
         </div>
-
-        {/* Pagination */}
-        {totalPages > 1 && (
-          <div className="border-t border-slate-100 px-4 py-3 flex items-center justify-between">
-            <p className="text-sm text-slate-500">
-              Showing {((page - 1) * 15) + 1}–{Math.min(page * 15, total)} of {total}
-            </p>
-            <div className="flex items-center gap-1">
-              <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1}
-                className="btn-ghost btn-sm">
-                <ChevronLeft size={14} />
-              </button>
-              <span className="text-sm text-slate-600 px-2">{page} / {totalPages}</span>
-              <button onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page === totalPages}
-                className="btn-ghost btn-sm">
-                <ChevronRight size={14} />
-              </button>
-            </div>
-          </div>
-        )}
       </div>
 
-      {showInvite && <InviteModal onClose={() => setShowInvite(false)} />}
+      {showInvite && <InviteModal companyId={company.company_id} onClose={() => setShowInvite(false)} />}
     </div>
   )
 }

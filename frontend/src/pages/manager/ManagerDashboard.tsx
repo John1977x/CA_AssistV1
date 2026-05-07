@@ -1,5 +1,6 @@
 import { Users, UserCheck, ClipboardList, AlertCircle, TrendingUp, Calendar } from 'lucide-react'
 import { useAuthStoreV2 } from '@/store/authStoreV2'
+import DocumentRequestsWidget from '@/components/owner/DocumentRequestsWidget'
 
 const quickLinks = [
   { label: 'Add Team Member', desc: 'Team management', href: '/users', color: 'bg-blue-500' },
@@ -17,17 +18,17 @@ export default function ManagerDashboard() {
   return (
     <div className="p-6 max-w-7xl mx-auto space-y-6">
       {/* Welcome */}
-      <div className="bg-gradient-to-r from-indigo-800 to-indigo-700 rounded-2xl p-6 text-white">
+      <div className="bg-gradient-to-r from-brand-800 to-brand-700 rounded-2xl p-6 text-white">
         <h2 className="text-xl font-bold mb-1">
           {greeting}, {user?.first_name}! 👋
         </h2>
-        <p className="text-indigo-200 text-sm">Manage your team and clients in {company?.company_name}</p>
+        <p className="text-brand-200 text-sm">Manage your team and clients in {company?.company_name}</p>
         <div className="mt-4 flex items-center gap-3">
           <div className="bg-white/10 rounded-lg px-3 py-1.5 text-xs font-medium">
             <Calendar size={12} className="inline mr-1" />
             {new Date().toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
           </div>
-          <div className="bg-indigo-600/50 text-indigo-100 rounded-lg px-3 py-1.5 text-xs font-medium">📊 Manager</div>
+          <div className="bg-brand-600/50 text-brand-100 rounded-lg px-3 py-1.5 text-xs font-medium">📊 Manager</div>
         </div>
       </div>
 
@@ -45,7 +46,7 @@ export default function ManagerDashboard() {
                     <TrendingUp size={14} className="text-white" />
                   </div>
                   <div>
-                    <div className="text-sm font-medium text-slate-900 group-hover:text-indigo-800">{q.label}</div>
+                    <div className="text-sm font-medium text-slate-900 group-hover:text-brand-800">{q.label}</div>
                     <div className="text-xs text-slate-500">{q.desc}</div>
                   </div>
                 </a>
@@ -65,8 +66,8 @@ export default function ManagerDashboard() {
               ].map(member => (
                 <div key={member.name} className="flex items-center justify-between p-3 rounded-xl bg-slate-50 hover:bg-slate-100 transition-colors">
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-indigo-100 rounded-full flex items-center justify-center">
-                      <span className="text-sm font-semibold text-indigo-700">{member.name.charAt(0)}</span>
+                    <div className="w-10 h-10 bg-brand-100 rounded-full flex items-center justify-center">
+                      <span className="text-sm font-semibold text-brand-700">{member.name.charAt(0)}</span>
                     </div>
                     <div>
                       <div className="text-sm font-medium text-slate-900">{member.name}</div>
@@ -83,7 +84,7 @@ export default function ManagerDashboard() {
           </div>
         </div>
 
-        {/* Right column — Stats */}
+        {/* Right column — Stats and Document Requests */}
         <div className="space-y-4">
           <div className="card p-5">
             <h3 className="text-sm font-semibold text-slate-900 mb-4">Team Stats</h3>
@@ -104,6 +105,7 @@ export default function ManagerDashboard() {
               ))}
             </div>
           </div>
+          <DocumentRequestsWidget />
         </div>
       </div>
     </div>

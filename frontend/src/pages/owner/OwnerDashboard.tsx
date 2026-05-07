@@ -1,6 +1,7 @@
 import { Users, UserCheck, ClipboardList, AlertCircle, TrendingUp, Calendar } from 'lucide-react'
 import { useAuthStoreV2 } from '@/store/authStoreV2'
 import { SubscriptionWidget } from '@/components/subscription/SubscriptionWidget'
+import DocumentRequestsWidget from '@/components/owner/DocumentRequestsWidget'
 
 const quickLinks = [
   { label: 'File GSTR-1',    desc: 'GST Management',   href: '/gst',      color: 'bg-blue-500' },
@@ -91,6 +92,7 @@ export default function OwnerDashboard() {
         {/* Right column — Subscription widget */}
         <div className="space-y-4">
           <SubscriptionWidget />
+          <DocumentRequestsWidget />
         </div>
       </div>
     </div>

@@ -69,9 +69,9 @@ class LoginRequest(BaseModel):
 
 class CompanyInfo(BaseModel):
     """Company information"""
-    company_id: str
-    company_name: str
-    company_code: str
+    company_id: Optional[str] = None
+    company_name: Optional[str] = None
+    company_code: Optional[str] = None
     role: CompanyRoleEnum
     branch_id: Optional[str] = None
     branch_name: Optional[str] = None
@@ -229,6 +229,24 @@ class CompanyOut(BaseModel):
 
     class Config:
         from_attributes = True
+    
+    @classmethod
+    def from_orm(cls, obj):
+        """Convert ORM object to schema, converting UUID to string"""
+        if obj is None:
+            return None
+        data = {
+            'company_id': str(obj.company_id) if hasattr(obj, 'company_id') else None,
+            'company_name': obj.company_name if hasattr(obj, 'company_name') else None,
+            'company_code': obj.company_code if hasattr(obj, 'company_code') else None,
+            'email': obj.email if hasattr(obj, 'email') else None,
+            'phone': obj.phone if hasattr(obj, 'phone') else None,
+            'city': obj.city if hasattr(obj, 'city') else None,
+            'state': obj.state if hasattr(obj, 'state') else None,
+            'status': obj.status if hasattr(obj, 'status') else None,
+            'created_at': obj.created_at if hasattr(obj, 'created_at') else None,
+        }
+        return cls(**data)
 
 
 # ─── Team Management ────────────────────────────────────────────────────────
@@ -257,6 +275,36 @@ class TeamMemberOut(BaseModel):
 
     class Config:
         from_attributes = True
+    
+    @classmethod
+    def from_orm(cls, obj):
+        """Convert ORM object to schema, converting UUID to string"""
+        if obj is None:
+            return None
+        # Get user details from the relationship (should be eagerly loaded)
+        user = obj.user if hasattr(obj, 'user') else None
+        role = obj.role if hasattr(obj, 'role') else None
+        
+        # Extract role name - handle both CompanyRole object and string
+        role_name = None
+        if role:
+            if hasattr(role, 'role_name'):
+                role_name = role.role_name
+            elif isinstance(role, str):
+                role_name = role
+        
+        data = {
+            'company_user_id': str(obj.company_user_id) if hasattr(obj, 'company_user_id') else None,
+            'user_id': obj.user_id if hasattr(obj, 'user_id') else None,
+            'first_name': user.first_name if user and hasattr(user, 'first_name') else None,
+            'last_name': user.last_name if user and hasattr(user, 'last_name') else None,
+            'email': user.email if user and hasattr(user, 'email') else None,
+            'phone': user.phone if user and hasattr(user, 'phone') else None,
+            'role': role_name,
+            'status': obj.status if hasattr(obj, 'status') else None,
+            'joined_at': obj.joined_at if hasattr(obj, 'joined_at') else None,
+        }
+        return cls(**data)
 
 
 # ─── Client Management ──────────────────────────────────────────────────────
@@ -285,6 +333,23 @@ class ClientOut(BaseModel):
 
     class Config:
         from_attributes = True
+    
+    @classmethod
+    def from_orm(cls, obj):
+        """Convert ORM object to schema, converting UUID to string"""
+        if obj is None:
+            return None
+        data = {
+            'client_id': str(obj.client_id) if hasattr(obj, 'client_id') else None,
+            'client_name': obj.client_name if hasattr(obj, 'client_name') else None,
+            'client_code': obj.client_code if hasattr(obj, 'client_code') else None,
+            'email': obj.email if hasattr(obj, 'email') else None,
+            'phone': obj.phone if hasattr(obj, 'phone') else None,
+            'client_type': obj.client_type if hasattr(obj, 'client_type') else None,
+            'status': obj.status if hasattr(obj, 'status') else None,
+            'created_at': obj.created_at if hasattr(obj, 'created_at') else None,
+        }
+        return cls(**data)
 
 
 # ─── Branch Management ──────────────────────────────────────────────────────
@@ -317,6 +382,23 @@ class BranchOut(BaseModel):
 
     class Config:
         from_attributes = True
+    
+    @classmethod
+    def from_orm(cls, obj):
+        """Convert ORM object to schema, converting UUID to string"""
+        if obj is None:
+            return None
+        data = {
+            'branch_id': str(obj.branch_id) if hasattr(obj, 'branch_id') else None,
+            'branch_name': obj.branch_name if hasattr(obj, 'branch_name') else None,
+            'branch_code': obj.branch_code if hasattr(obj, 'branch_code') else None,
+            'city': obj.city if hasattr(obj, 'city') else None,
+            'state': obj.state if hasattr(obj, 'state') else None,
+            'is_head_office': obj.is_head_office if hasattr(obj, 'is_head_office') else False,
+            'status': obj.status if hasattr(obj, 'status') else None,
+            'created_at': obj.created_at if hasattr(obj, 'created_at') else None,
+        }
+        return cls(**data)
 
 
 # ─── Error Response ─────────────────────────────────────────────────────────
@@ -341,3 +423,63 @@ class ChangeCompanyBranchResponse(BaseModel):
     message: str
     company: CompanyInfo
 
+
+
+# ─── Document Request Tickets ──────────────────────────────────────────────
+
+class DocumentRequestTicketCreate(BaseModel):
+    """Create document request ticket"""
+    document_types: List[str] = Field(..., min_items=1)  # ["PAN", "TAN", "COMPANY_ESTABLISHED_DATE"]
+    description: Optional[str] = None
+    priority: str = Field(default="NORMAL", pattern="^(URGENT|NORMAL|LOW)$")
+
+
+class DocumentRequestTicketUpdate(BaseModel):
+    """Update document request ticket"""
+    status: Optional[str] = None  # OPEN, IN_PROGRESS, COMPLETED, REJECTED
+    assigned_to_user_id: Optional[int] = None
+    completion_notes: Optional[str] = None
+
+
+class DocumentRequestTicketOut(BaseModel):
+    """Document request ticket output"""
+    ticket_id: str
+    company_id: str
+    client_id: str
+    requested_by_user_id: int
+    document_types: List[str]
+    description: Optional[str] = None
+    priority: str
+    status: str
+    assigned_to_user_id: Optional[int] = None
+    completed_at: Optional[datetime] = None
+    completed_by_user_id: Optional[int] = None
+    completion_notes: Optional[str] = None
+    created_at: datetime
+    updated_at: datetime
+
+    class Config:
+        from_attributes = True
+    
+    @classmethod
+    def from_orm(cls, obj):
+        """Convert ORM object to schema, converting UUID to string"""
+        if obj is None:
+            return None
+        data = {
+            'ticket_id': str(obj.ticket_id) if hasattr(obj, 'ticket_id') else None,
+            'company_id': str(obj.company_id) if hasattr(obj, 'company_id') else None,
+            'client_id': str(obj.client_id) if hasattr(obj, 'client_id') else None,
+            'requested_by_user_id': obj.requested_by_user_id if hasattr(obj, 'requested_by_user_id') else None,
+            'document_types': obj.document_types if hasattr(obj, 'document_types') else [],
+            'description': obj.description if hasattr(obj, 'description') else None,
+            'priority': obj.priority if hasattr(obj, 'priority') else None,
+            'status': obj.status if hasattr(obj, 'status') else None,
+            'assigned_to_user_id': obj.assigned_to_user_id if hasattr(obj, 'assigned_to_user_id') else None,
+            'completed_at': obj.completed_at if hasattr(obj, 'completed_at') else None,
+            'completed_by_user_id': obj.completed_by_user_id if hasattr(obj, 'completed_by_user_id') else None,
+            'completion_notes': obj.completion_notes if hasattr(obj, 'completion_notes') else None,
+            'created_at': obj.created_at if hasattr(obj, 'created_at') else None,
+            'updated_at': obj.updated_at if hasattr(obj, 'updated_at') else None,
+        }
+        return cls(**data)

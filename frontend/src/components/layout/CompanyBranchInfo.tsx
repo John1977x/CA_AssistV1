@@ -26,7 +26,7 @@ export function CompanyBranchInfo() {
         <div className="flex flex-col">
           <span className="text-xs text-slate-500 font-medium">Branch</span>
           <span className="font-medium text-slate-900">
-            {company.branch_name || 'Head Office'}
+            {company.branch_name || 'Head Branch'}
           </span>
         </div>
       </div>

@@ -47,6 +47,7 @@ const OWNER_NAV_GROUPS = [
     items: [
       { to: '/tasks', icon: ClipboardList, label: 'Tasks' },
       { to: '/owner/tickets', icon: Ticket, label: 'Tickets' },
+      { to: '/owner/document-requests', icon: FileText, label: 'Document Requests' },
       { to: '/enquiries', icon: Mail, label: 'Enquiries' },
     ],
   },

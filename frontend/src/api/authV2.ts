@@ -1,3 +1,4 @@
+import api from './client'
 import axios from 'axios'
 import type { LoginResponse, UserProfile, CompanyInfo } from '@/store/authStoreV2'
 
@@ -52,13 +53,13 @@ export const authV2Api = {
 
   // Get Current User
   getCurrentUser: async (): Promise<UserProfile> => {
-    const response = await axios.get(`${API_URL}/api/v1/auth/me`)
+    const response = await api.get(`/auth/me`)
     return response.data
   },
 
   // Logout
   logout: async () => {
-    const response = await axios.post(`${API_URL}/api/v1/auth/logout`)
+    const response = await api.post(`/auth/logout`)
     return response.data
   },
 
@@ -68,7 +69,7 @@ export const authV2Api = {
     new_password: string
     confirm_password: string
   }) => {
-    const response = await axios.post(`${API_URL}/api/v1/auth/change-password`, data)
+    const response = await api.post(`/auth/change-password`, data)
     return response.data
   },
 
@@ -95,7 +96,7 @@ export const authV2Api = {
     company_id: string
     branch_id?: string | null
   }): Promise<{ message: string; company: CompanyInfo }> => {
-    const response = await axios.post(`${API_URL}/api/v1/auth/change-company-branch`, data)
+    const response = await api.post(`/auth/change-company-branch`, data)
     return response.data
   },
 }

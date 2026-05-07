@@ -5,7 +5,7 @@ Company Management Endpoints for Multi-Company Architecture
 from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, and_
-from typing import List
+from typing import List, Optional
 from app.db.session import get_db
 from app.core.deps import get_current_user
 from app.models.auth import User
@@ -18,6 +18,7 @@ from app.schemas.auth_v2 import (
     AddTeamMemberRequest, TeamMemberOut,
     AddClientRequest, ClientOut,
     CreateBranchRequest, BranchOut,
+    DocumentRequestTicketCreate, DocumentRequestTicketUpdate, DocumentRequestTicketOut,
 )
 from app.services.auth_v2 import (
     create_company, add_team_member, add_client, create_branch
@@ -51,7 +52,8 @@ async def list_companies(
         .limit(limit)
     )
     companies = result.scalars().all()
-    return companies
+    # Convert each company using from_orm to handle UUID serialization
+    return [CompanyOut.from_orm(company) for company in companies]
 
 
 @router.post("", response_model=CompanyOut, status_code=status.HTTP_201_CREATED)
@@ -75,8 +77,19 @@ async def get_company(
     """
     Get company details
     """
+    import uuid
+    
+    # Convert company_id to UUID
+    try:
+        company_uuid = uuid.UUID(company_id)
+    except ValueError:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid company ID format"
+        )
+    
     result = await db.execute(
-        select(Company).where(Company.company_id == company_id)
+        select(Company).where(Company.company_id == company_uuid)
     )
     company = result.scalar_one_or_none()
     
@@ -91,7 +104,7 @@ async def get_company(
         select(CompanyUser).where(
             and_(
                 CompanyUser.user_id == current_user.user_id,
-                CompanyUser.company_id == company_id,
+                CompanyUser.company_id == company_uuid,
             )
         )
     )
@@ -114,8 +127,19 @@ async def update_company(
     """
     Update company details (owner only)
     """
+    import uuid
+    
+    # Convert company_id to UUID
+    try:
+        company_uuid = uuid.UUID(company_id)
+    except ValueError:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid company ID format"
+        )
+    
     result = await db.execute(
-        select(Company).where(Company.company_id == company_id)
+        select(Company).where(Company.company_id == company_uuid)
     )
     company = result.scalar_one_or_none()
     
@@ -157,8 +181,19 @@ async def delete_company(
     """
     Delete company (owner only)
     """
+    import uuid
+    
+    # Convert company_id to UUID
+    try:
+        company_uuid = uuid.UUID(company_id)
+    except ValueError:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid company ID format"
+        )
+    
     result = await db.execute(
-        select(Company).where(Company.company_id == company_id)
+        select(Company).where(Company.company_id == company_uuid)
     )
     company = result.scalar_one_or_none()
     
@@ -191,12 +226,24 @@ async def list_team_members(
     """
     List team members of a company
     """
+    import uuid
+    from sqlalchemy.orm import selectinload
+    
+    # Convert company_id to UUID
+    try:
+        company_uuid = uuid.UUID(company_id)
+    except ValueError:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid company ID format"
+        )
+    
     # Verify user has access
     company_user_result = await db.execute(
         select(CompanyUser).where(
             and_(
                 CompanyUser.user_id == current_user.user_id,
-                CompanyUser.company_id == company_id,
+                CompanyUser.company_id == company_uuid,
             )
         )
     )
@@ -208,12 +255,14 @@ async def list_team_members(
     
     result = await db.execute(
         select(CompanyUser)
-        .where(CompanyUser.company_id == company_id)
+        .where(CompanyUser.company_id == company_uuid)
+        .options(selectinload(CompanyUser.user), selectinload(CompanyUser.role))
         .offset(skip)
         .limit(limit)
     )
     team_members = result.scalars().all()
-    return team_members
+    # Convert each team member using from_orm to handle UUID serialization
+    return [TeamMemberOut.from_orm(member) for member in team_members]
 
 
 @router.post("/{company_id}/team/managers", response_model=TeamMemberOut, status_code=status.HTTP_201_CREATED)
@@ -254,12 +303,23 @@ async def remove_team_member(
     """
     Remove team member from company
     """
+    import uuid
+    
+    # Convert company_id to UUID
+    try:
+        company_uuid = uuid.UUID(company_id)
+    except ValueError:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid company ID format"
+        )
+    
     # Verify user has permission
     company_user_result = await db.execute(
         select(CompanyUser).where(
             and_(
                 CompanyUser.user_id == current_user.user_id,
-                CompanyUser.company_id == company_id,
+                CompanyUser.company_id == company_uuid,
             )
         )
     )
@@ -288,7 +348,7 @@ async def remove_team_member(
         select(CompanyUser).where(
             and_(
                 CompanyUser.user_id == user_id,
-                CompanyUser.company_id == company_id,
+                CompanyUser.company_id == company_uuid,
             )
         )
     )
@@ -317,12 +377,23 @@ async def list_clients(
     """
     List clients of a company
     """
+    import uuid
+    
+    # Convert company_id to UUID
+    try:
+        company_uuid = uuid.UUID(company_id)
+    except ValueError:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid company ID format"
+        )
+    
     # Verify user has access
     company_user_result = await db.execute(
         select(CompanyUser).where(
             and_(
                 CompanyUser.user_id == current_user.user_id,
-                CompanyUser.company_id == company_id,
+                CompanyUser.company_id == company_uuid,
             )
         )
     )
@@ -334,12 +405,13 @@ async def list_clients(
     
     result = await db.execute(
         select(CompanyClient)
-        .where(CompanyClient.company_id == company_id)
+        .where(CompanyClient.company_id == company_uuid)
         .offset(skip)
         .limit(limit)
     )
     clients = result.scalars().all()
-    return clients
+    # Convert each client using from_orm to handle UUID serialization
+    return [ClientOut.from_orm(client) for client in clients]
 
 
 @router.post("/{company_id}/clients", response_model=ClientOut, status_code=status.HTTP_201_CREATED)
@@ -365,11 +437,23 @@ async def get_client(
     """
     Get client details
     """
+    import uuid
+    
+    # Convert IDs to UUID
+    try:
+        company_uuid = uuid.UUID(company_id)
+        client_uuid = uuid.UUID(client_id)
+    except ValueError:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid company or client ID format"
+        )
+    
     result = await db.execute(
         select(CompanyClient).where(
             and_(
-                CompanyClient.client_id == client_id,
-                CompanyClient.company_id == company_id,
+                CompanyClient.client_id == client_uuid,
+                CompanyClient.company_id == company_uuid,
             )
         )
     )
@@ -394,11 +478,23 @@ async def delete_client(
     """
     Delete client
     """
+    import uuid
+    
+    # Convert IDs to UUID
+    try:
+        company_uuid = uuid.UUID(company_id)
+        client_uuid = uuid.UUID(client_id)
+    except ValueError:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid company or client ID format"
+        )
+    
     result = await db.execute(
         select(CompanyClient).where(
             and_(
-                CompanyClient.client_id == client_id,
-                CompanyClient.company_id == company_id,
+                CompanyClient.client_id == client_uuid,
+                CompanyClient.company_id == company_uuid,
             )
         )
     )
@@ -427,29 +523,47 @@ async def list_branches(
     """
     List branches of a company
     """
-    # Verify user has access
+    import uuid
+    
+    # Convert company_id string to UUID
+    try:
+        company_uuid = uuid.UUID(company_id)
+    except ValueError:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid company ID format"
+        )
+    
+    # Verify user has access to this company
     company_user_result = await db.execute(
         select(CompanyUser).where(
             and_(
                 CompanyUser.user_id == current_user.user_id,
-                CompanyUser.company_id == company_id,
+                CompanyUser.company_id == company_uuid,
             )
         )
     )
     if not company_user_result.scalar_one_or_none():
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="You don't have access to this company"
+        # Also check if user is the owner of the company
+        company_result = await db.execute(
+            select(Company).where(Company.company_id == company_uuid)
         )
+        company = company_result.scalar_one_or_none()
+        if not company or company.owner_id != current_user.user_id:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="You don't have access to this company"
+            )
     
     result = await db.execute(
         select(CompanyBranch)
-        .where(CompanyBranch.company_id == company_id)
+        .where(CompanyBranch.company_id == company_uuid)
         .offset(skip)
         .limit(limit)
     )
     branches = result.scalars().all()
-    return branches
+    # Convert each branch using from_orm to handle UUID serialization
+    return [BranchOut.from_orm(branch) for branch in branches]
 
 
 @router.post("/{company_id}/branches", response_model=BranchOut, status_code=status.HTTP_201_CREATED)
@@ -475,11 +589,23 @@ async def get_branch(
     """
     Get branch details
     """
+    import uuid
+    
+    # Convert IDs to UUID
+    try:
+        company_uuid = uuid.UUID(company_id)
+        branch_uuid = uuid.UUID(branch_id)
+    except ValueError:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid company or branch ID format"
+        )
+    
     result = await db.execute(
         select(CompanyBranch).where(
             and_(
-                CompanyBranch.branch_id == branch_id,
-                CompanyBranch.company_id == company_id,
+                CompanyBranch.branch_id == branch_uuid,
+                CompanyBranch.company_id == company_uuid,
             )
         )
     )
@@ -504,11 +630,23 @@ async def delete_branch(
     """
     Delete branch
     """
+    import uuid
+    
+    # Convert IDs to UUID
+    try:
+        company_uuid = uuid.UUID(company_id)
+        branch_uuid = uuid.UUID(branch_id)
+    except ValueError:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid company or branch ID format"
+        )
+    
     result = await db.execute(
         select(CompanyBranch).where(
             and_(
-                CompanyBranch.branch_id == branch_id,
-                CompanyBranch.company_id == company_id,
+                CompanyBranch.branch_id == branch_uuid,
+                CompanyBranch.company_id == company_uuid,
             )
         )
     )
@@ -522,3 +660,187 @@ async def delete_branch(
     
     branch.is_deleted = True
     await db.commit()
+
+
+# ─── Document Request Tickets ──────────────────────────────────────────────
+
+@router.post("/{company_id}/clients/{client_id}/document-request", response_model=DocumentRequestTicketOut, status_code=status.HTTP_201_CREATED)
+async def create_document_request_ticket(
+    company_id: str,
+    client_id: str,
+    request: DocumentRequestTicketCreate,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    Client raises a document request ticket
+    """
+    import uuid
+    from app.models.company_v2 import DocumentRequestTicket
+    
+    # Convert IDs to UUID
+    try:
+        company_uuid = uuid.UUID(company_id)
+        client_uuid = uuid.UUID(client_id)
+    except ValueError:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid company or client ID format"
+        )
+    
+    # Verify client exists and belongs to company
+    client_result = await db.execute(
+        select(CompanyClient).where(
+            and_(
+                CompanyClient.client_id == client_uuid,
+                CompanyClient.company_id == company_uuid,
+            )
+        )
+    )
+    client = client_result.scalar_one_or_none()
+    if not client:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Client not found"
+        )
+    
+    # Create ticket
+    ticket = DocumentRequestTicket(
+        ticket_id=uuid.uuid4(),
+        company_id=company_uuid,
+        client_id=client_uuid,
+        requested_by_user_id=current_user.user_id,
+        document_types=request.document_types,
+        description=request.description,
+        priority=request.priority,
+        status="OPEN",
+    )
+    db.add(ticket)
+    await db.commit()
+    
+    return DocumentRequestTicketOut.from_orm(ticket)
+
+
+@router.get("/{company_id}/document-requests", response_model=List[DocumentRequestTicketOut])
+async def list_document_request_tickets(
+    company_id: str,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+    status_filter: Optional[str] = Query(None),
+):
+    """
+    List document request tickets for a company (for owner/employees)
+    """
+    import uuid
+    from app.models.company_v2 import DocumentRequestTicket
+    
+    # Convert company_id to UUID
+    try:
+        company_uuid = uuid.UUID(company_id)
+    except ValueError:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid company ID format"
+        )
+    
+    # Verify user has access to company
+    company_user_result = await db.execute(
+        select(CompanyUser).where(
+            and_(
+                CompanyUser.user_id == current_user.user_id,
+                CompanyUser.company_id == company_uuid,
+            )
+        )
+    )
+    if not company_user_result.scalar_one_or_none():
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You don't have access to this company"
+        )
+    
+    # Build query
+    query = select(DocumentRequestTicket).where(
+        DocumentRequestTicket.company_id == company_uuid
+    )
+    
+    if status_filter:
+        query = query.where(DocumentRequestTicket.status == status_filter)
+    
+    result = await db.execute(query.order_by(DocumentRequestTicket.created_at.desc()))
+    tickets = result.scalars().all()
+    
+    return [DocumentRequestTicketOut.from_orm(ticket) for ticket in tickets]
+
+
+@router.patch("/{company_id}/document-requests/{ticket_id}", response_model=DocumentRequestTicketOut)
+async def update_document_request_ticket(
+    company_id: str,
+    ticket_id: str,
+    request: DocumentRequestTicketUpdate,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    Update document request ticket (owner/employee only)
+    """
+    import uuid
+    from app.models.company_v2 import DocumentRequestTicket
+    from datetime import datetime, timezone
+    
+    # Convert IDs to UUID
+    try:
+        company_uuid = uuid.UUID(company_id)
+        ticket_uuid = uuid.UUID(ticket_id)
+    except ValueError:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid company or ticket ID format"
+        )
+    
+    # Verify user has access to company
+    company_user_result = await db.execute(
+        select(CompanyUser).where(
+            and_(
+                CompanyUser.user_id == current_user.user_id,
+                CompanyUser.company_id == company_uuid,
+            )
+        )
+    )
+    if not company_user_result.scalar_one_or_none():
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You don't have access to this company"
+        )
+    
+    # Get ticket
+    ticket_result = await db.execute(
+        select(DocumentRequestTicket).where(
+            and_(
+                DocumentRequestTicket.ticket_id == ticket_uuid,
+                DocumentRequestTicket.company_id == company_uuid,
+            )
+        )
+    )
+    ticket = ticket_result.scalar_one_or_none()
+    if not ticket:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Ticket not found"
+        )
+    
+    # Update fields
+    if request.status:
+        ticket.status = request.status
+        if request.status == "COMPLETED":
+            ticket.completed_at = datetime.now(timezone.utc)
+            ticket.completed_by_user_id = current_user.user_id
+    
+    if request.assigned_to_user_id:
+        ticket.assigned_to_user_id = request.assigned_to_user_id
+    
+    if request.completion_notes:
+        ticket.completion_notes = request.completion_notes
+    
+    await db.commit()
+    
+    return DocumentRequestTicketOut.from_orm(ticket)

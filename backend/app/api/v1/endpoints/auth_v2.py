@@ -257,9 +257,9 @@ async def reset_password_endpoint(
 
 # ─── Change Company/Branch ──────────────────────────────────────────────────
 
-@router.post("/change-company-branch")
+@router.post("/change-company-branch", response_model=ChangeCompanyBranchResponse)
 async def change_company_branch_endpoint(
-    request,
+    request: ChangeCompanyBranchRequest,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
@@ -269,21 +269,12 @@ async def change_company_branch_endpoint(
     - **company_id**: ID of the company to switch to
     - **branch_id**: ID of the branch (optional)
     """
-    from app.schemas.auth_v2 import ChangeCompanyBranchRequest, ChangeCompanyBranchResponse
-    from app.services.auth_v2 import change_company_branch
-    
-    # Parse request
-    if isinstance(request, dict):
-        change_request = ChangeCompanyBranchRequest(**request)
-    else:
-        change_request = request
-    
     # Call service
     company_info = await change_company_branch(
         db,
         current_user.user_id,
-        change_request.company_id,
-        change_request.branch_id
+        request.company_id,
+        request.branch_id
     )
     
     return ChangeCompanyBranchResponse(
