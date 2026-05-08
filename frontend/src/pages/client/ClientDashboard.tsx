@@ -1,14 +1,31 @@
 import { useAuthStore } from '@/store/authStore'
 import { FileText, CheckCircle, Clock, AlertCircle, MessageSquare, Download } from 'lucide-react'
+import { useEffect, useState } from 'react'
+import { tasksApi } from '@/api/tasks'
+import type { Task } from '@/types/task'
 
 export default function ClientDashboard() {
   const user = useAuthStore(s => s.user)
+  const [tasks, setTasks] = useState<Task[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
-  const tasks = [
-    { id: 1, title: 'GST Return Filing', status: 'completed', dueDate: '2026-04-15', progress: 100 },
-    { id: 2, title: 'Income Tax Return', status: 'in-progress', dueDate: '2026-05-31', progress: 65 },
-    { id: 3, title: 'TDS Compliance', status: 'pending', dueDate: '2026-06-15', progress: 0 },
-  ]
+  useEffect(() => {
+    const fetchTasks = async () => {
+      try {
+        setLoading(true)
+        const response = await tasksApi.clientTasks({ page: 1, page_size: 50 })
+        setTasks(response.items || [])
+      } catch (err) {
+        console.error('Failed to fetch tasks:', err)
+        setError('Failed to load tasks')
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchTasks()
+  }, [])
 
   const documents = [
     { id: 1, name: 'GST Return - March 2026', date: '2026-04-10', size: '2.4 MB' },
@@ -17,30 +34,44 @@ export default function ClientDashboard() {
   ]
 
   const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'completed':
+    switch (status?.toUpperCase()) {
+      case 'COMPLETED':
+      case 'FILED':
         return 'bg-green-100 text-green-800'
-      case 'in-progress':
+      case 'IN_PROGRESS':
         return 'bg-blue-100 text-blue-800'
-      case 'pending':
+      case 'PENDING':
         return 'bg-yellow-100 text-yellow-800'
+      case 'CANCELLED':
+        return 'bg-red-100 text-red-800'
       default:
         return 'bg-gray-100 text-gray-800'
     }
   }
 
   const getStatusIcon = (status: string) => {
-    switch (status) {
-      case 'completed':
+    switch (status?.toUpperCase()) {
+      case 'COMPLETED':
+      case 'FILED':
         return <CheckCircle size={16} />
-      case 'in-progress':
+      case 'IN_PROGRESS':
         return <Clock size={16} />
-      case 'pending':
+      case 'PENDING':
         return <AlertCircle size={16} />
       default:
         return null
     }
   }
+
+  const getTaskStats = () => {
+    const total = tasks.length
+    const completed = tasks.filter(t => ['COMPLETED', 'FILED'].includes(t.status?.toUpperCase() || '')).length
+    const inProgress = tasks.filter(t => t.status?.toUpperCase() === 'IN_PROGRESS').length
+    const pending = tasks.filter(t => t.status?.toUpperCase() === 'PENDING').length
+    return { total, completed, inProgress, pending }
+  }
+
+  const stats = getTaskStats()
 
   return (
     <div className="p-6 max-w-7xl mx-auto">
@@ -56,7 +87,7 @@ export default function ClientDashboard() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-slate-500 text-sm">Total Tasks</p>
-              <p className="text-3xl font-bold text-slate-900 mt-1">3</p>
+              <p className="text-3xl font-bold text-slate-900 mt-1">{stats.total}</p>
             </div>
             <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
               <FileText className="text-blue-600" size={24} />
@@ -68,7 +99,7 @@ export default function ClientDashboard() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-slate-500 text-sm">Completed</p>
-              <p className="text-3xl font-bold text-green-600 mt-1">1</p>
+              <p className="text-3xl font-bold text-green-600 mt-1">{stats.completed}</p>
             </div>
             <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
               <CheckCircle className="text-green-600" size={24} />
@@ -80,7 +111,7 @@ export default function ClientDashboard() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-slate-500 text-sm">In Progress</p>
-              <p className="text-3xl font-bold text-blue-600 mt-1">1</p>
+              <p className="text-3xl font-bold text-blue-600 mt-1">{stats.inProgress}</p>
             </div>
             <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
               <Clock className="text-blue-600" size={24} />
@@ -92,7 +123,7 @@ export default function ClientDashboard() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-slate-500 text-sm">Pending</p>
-              <p className="text-3xl font-bold text-yellow-600 mt-1">1</p>
+              <p className="text-3xl font-bold text-yellow-600 mt-1">{stats.pending}</p>
             </div>
             <div className="w-12 h-12 bg-yellow-100 rounded-lg flex items-center justify-center">
               <AlertCircle className="text-yellow-600" size={24} />
@@ -106,31 +137,58 @@ export default function ClientDashboard() {
         <div className="lg:col-span-2">
           <div className="bg-white rounded-lg border border-slate-200 p-6">
             <h2 className="text-lg font-bold text-slate-900 mb-4">Your Tasks</h2>
-            <div className="space-y-4">
-              {tasks.map(task => (
-                <div key={task.id} className="border border-slate-200 rounded-lg p-4">
-                  <div className="flex items-start justify-between mb-3">
-                    <div className="flex items-center gap-3">
-                      {getStatusIcon(task.status)}
-                      <div>
-                        <h3 className="font-medium text-slate-900">{task.title}</h3>
-                        <p className="text-sm text-slate-500">Due: {task.dueDate}</p>
+            {loading ? (
+              <div className="text-center py-8">
+                <p className="text-slate-500">Loading tasks...</p>
+              </div>
+            ) : error ? (
+              <div className="text-center py-8">
+                <p className="text-red-500">{error}</p>
+              </div>
+            ) : tasks.length === 0 ? (
+              <div className="text-center py-8">
+                <p className="text-slate-500">No tasks assigned yet</p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {tasks.map(task => (
+                  <div key={task.task_id} className="border border-slate-200 rounded-lg p-4 hover:shadow-md transition-shadow">
+                    <div className="flex items-start justify-between mb-3">
+                      <div className="flex items-center gap-3 flex-1">
+                        {getStatusIcon(task.status)}
+                        <div className="flex-1">
+                          <h3 className="font-medium text-slate-900">{task.task_title}</h3>
+                          <p className="text-sm text-slate-500">
+                            Due: {new Date(task.due_date).toLocaleDateString('en-IN')}
+                          </p>
+                          <p className="text-xs text-slate-400 mt-1">{task.task_type_code}</p>
+                        </div>
                       </div>
+                      <span className={`px-3 py-1 rounded-full text-xs font-medium whitespace-nowrap ml-2 ${getStatusColor(task.status)}`}>
+                        {task.status?.replace(/_/g, ' ') || 'PENDING'}
+                      </span>
                     </div>
-                    <span className={`px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(task.status)}`}>
-                      {task.status.replace('-', ' ')}
-                    </span>
+                    <div className="w-full bg-slate-200 rounded-full h-2">
+                      <div
+                        className="bg-blue-600 h-2 rounded-full transition-all"
+                        style={{ width: `${task.completion_percentage || 0}%` }}
+                      ></div>
+                    </div>
+                    <div className="flex items-center justify-between mt-2">
+                      <p className="text-xs text-slate-500">{task.completion_percentage || 0}% complete</p>
+                      {task.priority && (
+                        <span className="text-xs font-medium text-slate-600 bg-slate-100 px-2 py-1 rounded">
+                          {task.priority}
+                        </span>
+                      )}
+                    </div>
+                    {task.description && (
+                      <p className="text-sm text-slate-600 mt-3 line-clamp-2">{task.description}</p>
+                    )}
                   </div>
-                  <div className="w-full bg-slate-200 rounded-full h-2">
-                    <div
-                      className="bg-blue-600 h-2 rounded-full transition-all"
-                      style={{ width: `${task.progress}%` }}
-                    ></div>
-                  </div>
-                  <p className="text-xs text-slate-500 mt-2">{task.progress}% complete</p>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
 

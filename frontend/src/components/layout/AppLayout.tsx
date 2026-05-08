@@ -20,24 +20,15 @@ const OWNER_NAV_GROUPS = [
   {
     label: 'Menu',
     items: [
-      { to: '/owner/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
-      { to: '/dashboard-unified', icon: Calendar, label: 'Calendar' },
+      { to: '/dashboard-unified', icon: Calendar, label: 'Dashboard' },
       { to: '/owner/company', icon: Building2, label: 'Company' },
       { to: '/owner/clients', icon: UserCheck, label: 'Client' },
-    ],
-  },
-  {
-    label: 'Compliance',
-    items: [
-      { to: '/owner/gst', icon: FileText, label: 'GST' },
-      { to: '/owner/subscription', icon: CreditCard, label: 'Subscription' },
-      { to: '/owner/vendor', icon: Briefcase, label: 'Vendor' },
+      { to: '/branches', icon: Building, label: 'Branches' },
     ],
   },
   {
     label: 'Employee',
     items: [
-      { to: '/owner/profile', icon: User, label: 'Profile' },
       { to: '/owner/reporting', icon: BarChart3, label: 'Reporting' },
       { to: '/owner/employees', icon: Users, label: 'Employees' },
     ],
@@ -46,30 +37,16 @@ const OWNER_NAV_GROUPS = [
     label: 'Task',
     items: [
       { to: '/tasks', icon: ClipboardList, label: 'Tasks' },
-      { to: '/owner/tickets', icon: Ticket, label: 'Tickets' },
-      { to: '/owner/document-requests', icon: FileText, label: 'Document Requests' },
       { to: '/enquiries', icon: Mail, label: 'Enquiries' },
+      { to: '/owner/document-requests', icon: FileText, label: 'Document Requests' },
     ],
   },
   {
-    label: 'Accounts',
-    items: [
-      { to: '/owner/accounts', icon: DollarSign, label: 'Accounts' },
-      { to: '/owner/hrms', icon: Briefcase, label: 'HRMS' },
-    ],
-  },
-  {
-    label: 'Leave',
+    label: 'Admin',
     items: [
       { to: '/owner/leave', icon: Clock, label: 'Leave' },
-      { to: '/owner/assignments', icon: CheckSquare, label: 'Assignments' },
-    ],
-  },
-  {
-    label: 'Branch',
-    items: [
-      { to: '/branches', icon: Building, label: 'Branch' },
-      { to: '/owner/client-subscription', icon: CreditCard, label: 'Client Subscription' },
+      { to: '/owner/subscription', icon: CreditCard, label: 'Subscription' },
+      { to: '/profile', icon: User, label: 'Profile' },
     ],
   },
 ]
@@ -79,23 +56,13 @@ const MANAGER_NAV_GROUPS = [
   {
     label: 'Menu',
     items: [
-      { to: '/manager/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
-      { to: '/dashboard-unified', icon: Calendar, label: 'Calendar' },
-      { to: '#', icon: Building2, label: 'NA', disabled: true },
+      { to: '/dashboard-unified', icon: Calendar, label: 'Dashboard' },
       { to: '/manager/clients', icon: UserCheck, label: 'Client' },
-    ],
-  },
-  {
-    label: 'Compliance',
-    items: [
-      { to: '#', icon: FileText, label: 'NA', disabled: true },
-      { to: '/manager/vendor', icon: Briefcase, label: 'Vendor' },
     ],
   },
   {
     label: 'Employee',
     items: [
-      { to: '/manager/profile', icon: User, label: 'Profile' },
       { to: '/manager/reporting', icon: BarChart3, label: 'Reporting' },
       { to: '/manager/employees', icon: Users, label: 'Employees' },
     ],
@@ -104,29 +71,16 @@ const MANAGER_NAV_GROUPS = [
     label: 'Task',
     items: [
       { to: '/manager/tasks', icon: ClipboardList, label: 'Tasks' },
-      { to: '/manager/tickets', icon: Ticket, label: 'Tickets' },
       { to: '/manager/enquiries', icon: Mail, label: 'Enquiries' },
+      { to: '/manager/document-requests', icon: FileText, label: 'Document Requests' },
     ],
   },
   {
-    label: 'Accounts',
-    items: [
-      { to: '/manager/accounts', icon: DollarSign, label: 'Accounts' },
-      { to: '/manager/hrms', icon: Briefcase, label: 'HRMS' },
-    ],
-  },
-  {
-    label: 'Leave',
+    label: 'Admin',
     items: [
       { to: '/manager/leave', icon: Clock, label: 'Leave' },
-      { to: '/manager/assignments', icon: CheckSquare, label: 'Assignments' },
-    ],
-  },
-  {
-    label: 'Branch',
-    items: [
-      { to: '/branches', icon: Building, label: 'Branch' },
-      { to: '/manager/client-subscription', icon: CreditCard, label: 'Client Subscription' },
+      { to: '/manager/subscription', icon: CreditCard, label: 'Subscription' },
+      { to: '/profile', icon: User, label: 'Profile' },
     ],
   },
 ]
@@ -136,52 +90,21 @@ const EMPLOYEE_NAV_GROUPS = [
   {
     label: 'Menu',
     items: [
-      { to: '/employee/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
-      { to: '/dashboard-unified', icon: Calendar, label: 'Calendar' },
-      { to: '#', icon: Building2, label: 'NA', disabled: true },
-      { to: '/employee/clients', icon: UserCheck, label: 'Client' },
-    ],
-  },
-  {
-    label: 'Compliance',
-    items: [
-      { to: '#', icon: FileText, label: 'NA', disabled: true },
-      { to: '/employee/vendor', icon: Briefcase, label: 'Vendor' },
+      { to: '/dashboard-unified', icon: Calendar, label: 'Dashboard' },
     ],
   },
   {
     label: 'Employee',
     items: [
-      { to: '/employee/profile', icon: User, label: 'Profile' },
+      { to: '/employee/reporting', icon: BarChart3, label: 'Reporting' },
     ],
   },
   {
     label: 'Task',
     items: [
       { to: '/employee/tasks', icon: ClipboardList, label: 'Tasks' },
-      { to: '/employee/tickets', icon: Ticket, label: 'Tickets' },
       { to: '/employee/enquiries', icon: Mail, label: 'Enquiries' },
-    ],
-  },
-  {
-    label: 'Accounts',
-    items: [
-      { to: '/employee/accounts', icon: DollarSign, label: 'Accounts' },
-      { to: '/employee/hrms', icon: Briefcase, label: 'HRMS' },
-    ],
-  },
-  {
-    label: 'Leave',
-    items: [
-      { to: '/employee/leave', icon: Clock, label: 'Leave' },
-      { to: '/employee/assignments', icon: CheckSquare, label: 'Assignments' },
-    ],
-  },
-  {
-    label: 'Branch',
-    items: [
-      { to: '/branches', icon: Building, label: 'Branch' },
-      { to: '/employee/client-subscription', icon: CreditCard, label: 'Client Subscription' },
+      { to: '/employee/document-requests', icon: FileText, label: 'Document Requests' },
     ],
   },
 ]
@@ -191,46 +114,15 @@ const CLIENT_NAV_GROUPS = [
   {
     label: 'Menu',
     items: [
-      { to: '/client/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
-      { to: '/dashboard-unified', icon: Calendar, label: 'Calendar' },
-      { to: '#', icon: Building2, label: 'NA', disabled: true },
-      { to: '/client/profile', icon: User, label: 'Profile' },
-    ],
-  },
-  {
-    label: 'Compliance',
-    items: [
-      { to: '/client/subscription', icon: CreditCard, label: 'Subscription' },
-      { to: '#', icon: FileText, label: 'NA', disabled: true },
-    ],
-  },
-  {
-    label: 'Employee',
-    items: [
-      { to: '/client/point-of-contact', icon: UserCheck, label: 'Point of Contact' },
+      { to: '/dashboard-unified', icon: Calendar, label: 'Dashboard' },
     ],
   },
   {
     label: 'Task',
     items: [
       { to: '/client/tasks', icon: ClipboardList, label: 'Tasks' },
-      { to: '/client/tickets', icon: Ticket, label: 'Tickets' },
-      { to: '#', icon: Mail, label: 'NA', disabled: true },
-    ],
-  },
-  {
-    label: 'Accounts',
-    items: [
-      { to: '#', icon: DollarSign, label: 'NA', disabled: true },
-      { to: '#', icon: Briefcase, label: 'NA', disabled: true },
-      { to: '#', icon: Building, label: 'NA', disabled: true },
-      { to: '#', icon: CreditCard, label: 'NA', disabled: true },
-    ],
-  },
-  {
-    label: 'Upgrade',
-    items: [
-      { to: '/client/upgrade-subscription', icon: TrendingUp, label: 'Upgrade Subscription' },
+      { to: '/client/enquiries', icon: Mail, label: 'Enquiries' },
+      { to: '/client/document-requests', icon: FileText, label: 'Document Requests' },
     ],
   },
 ]
@@ -281,20 +173,25 @@ function SidebarContent({ onClose }: { onClose?: () => void }) {
   return (
     <div className="flex flex-col h-full">
       {/* Logo */}
-      <div className="flex items-center justify-between px-4 py-5 border-b border-slate-100">
-        <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 bg-brand-800 rounded-lg flex items-center justify-center flex-shrink-0">
-            <span className="text-white font-bold text-sm">CA</span>
+      <div className="flex items-center justify-between px-4 py-6 border-b border-slate-100">
+        <div className="flex items-start gap-3 flex-1">
+          <div className="w-10 h-10 bg-brand-800 rounded-lg flex items-center justify-center flex-shrink-0">
+            <span className="text-white font-bold text-base">CA</span>
           </div>
-          <div>
-            <div className="text-sm font-bold text-slate-900">CA Assists</div>
-            <div className="text-xs text-slate-400 truncate max-w-[130px]">
+          <div className="flex-1 min-w-0">
+            <div className="text-base font-bold text-slate-900">CA Assists</div>
+            <div className="text-sm text-slate-600 truncate font-medium">
               {company?.company_name || user?.email}
             </div>
+            {company?.branch_name && (
+              <div className="text-xs text-slate-500 truncate mt-1">
+                Branch: {company.branch_name}
+              </div>
+            )}
           </div>
         </div>
         {onClose && (
-          <button onClick={onClose} className="text-slate-400 hover:text-slate-600 lg:hidden">
+          <button onClick={onClose} className="text-slate-400 hover:text-slate-600 lg:hidden flex-shrink-0">
             <X size={18} />
           </button>
         )}
@@ -310,19 +207,6 @@ function SidebarContent({ onClose }: { onClose?: () => void }) {
             <div className="space-y-0.5">
               {group.items.map(item => {
                 const active = pathname.startsWith(item.to)
-                const isDisabled = (item as any).disabled
-                
-                if (isDisabled) {
-                  return (
-                    <div
-                      key={item.to}
-                      className="flex items-center gap-3 px-3 py-2 rounded-lg text-slate-400 cursor-not-allowed opacity-50"
-                    >
-                      <item.icon size={16} className="flex-shrink-0" />
-                      {item.label}
-                    </div>
-                  )
-                }
                 
                 return (
                   <Link
@@ -331,9 +215,9 @@ function SidebarContent({ onClose }: { onClose?: () => void }) {
                     onClick={onClose}
                     className={clsx('sidebar-link', active && 'sidebar-link-active')}
                   >
+                    {active && <ChevronRight size={14} className="mr-auto flex-shrink-0" />}
                     <item.icon size={16} className="flex-shrink-0" />
                     {item.label}
-                    {active && <ChevronRight size={14} className="ml-auto" />}
                   </Link>
                 )
               })}

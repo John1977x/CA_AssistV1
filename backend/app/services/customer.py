@@ -148,28 +148,6 @@ async def create_customer(db: AsyncSession, tenant_id: int, data: CustomerCreate
             select(User).where(User.email == customer.email)
         )
         if not existing_user.scalar_one_or_none():
-            # Get or create CLIENT role
-            from app.models.auth import UserRole
-            role_result = await db.execute(
-                select(UserRole).where(
-                    UserRole.tenant_id == tenant_id,
-                    UserRole.role_name == "CLIENT"
-                )
-            )
-            role = role_result.scalar_one_or_none()
-            
-            if not role:
-                # Create CLIENT role if it doesn't exist
-                role = UserRole(
-                    tenant_id=tenant_id,
-                    role_name="CLIENT",
-                    role_code="CLIENT",
-                    description="Client user role",
-                    is_system_role=False,
-                )
-                db.add(role)
-                await db.flush()
-            
             # Create new user with default password
             default_password = "CAassists@123456"
             password_hash = hash_password(default_password)
@@ -181,7 +159,6 @@ async def create_customer(db: AsyncSession, tenant_id: int, data: CustomerCreate
             
             user = User(
                 tenant_id=tenant_id,
-                role_id=role.role_id,
                 email=customer.email,
                 first_name=first_name,
                 last_name=last_name,

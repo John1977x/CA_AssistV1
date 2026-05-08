@@ -844,3 +844,69 @@ async def update_document_request_ticket(
     await db.commit()
     
     return DocumentRequestTicketOut.from_orm(ticket)
+
+
+# ─── Client Tasks ──────────────────────────────────────────────────────────
+
+@router.get("/client/tasks", response_model=dict)
+async def get_client_tasks(
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+    page: int = Query(1, ge=1),
+    page_size: int = Query(20, ge=1, le=100),
+):
+    """
+    Get tasks assigned to the current client/customer
+    """
+    from app.models.customer import Customer
+    from app.models.task import Task
+    from sqlalchemy import func
+    import math
+    
+    # Find customer by email
+    customer_result = await db.execute(
+        select(Customer).where(
+            Customer.email == current_user.email,
+            Customer.is_deleted == False,
+        )
+    )
+    customer = customer_result.scalar_one_or_none()
+    
+    if not customer:
+        return {
+            "items": [],
+            "total": 0,
+            "page": page,
+            "page_size": page_size,
+            "total_pages": 0,
+        }
+    
+    # Get tasks for this customer
+    query = select(Task).where(
+        Task.customer_id == customer.customer_id,
+        Task.is_deleted == False,
+    )
+    
+    count_result = await db.execute(select(func.count()).select_from(query.subquery()))
+    total = count_result.scalar()
+    
+    query = (
+        query
+        .offset((page - 1) * page_size)
+        .limit(page_size)
+        .order_by(Task.due_date.asc(), Task.priority.desc())
+    )
+    result = await db.execute(query)
+    tasks = result.scalars().all()
+    
+    # Convert tasks to dict format
+    from app.schemas.task import TaskListOut
+    task_items = [TaskListOut.model_validate(t) for t in tasks]
+    
+    return {
+        "items": task_items,
+        "total": total,
+        "page": page,
+        "page_size": page_size,
+        "total_pages": math.ceil(total / page_size) if total else 0,
+    }

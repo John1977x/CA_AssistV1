@@ -170,7 +170,7 @@ export default function HolidayCalendar({ holidays = DEFAULT_HOLIDAYS, onDateSel
                     !dayObj.isCurrentMonth
                       ? 'text-slate-300 bg-transparent cursor-default'
                       : holiday
-                      ? 'bg-red-500 text-white hover:bg-red-600 cursor-pointer shadow-md border-2 border-red-600'
+                      ? 'bg-orange-400 text-white hover:bg-orange-500 cursor-pointer shadow-md border-2 border-orange-500'
                       : isToday
                       ? 'bg-indigo-100 text-indigo-900 border-2 border-indigo-500 font-bold'
                       : isSelected
@@ -193,7 +193,7 @@ export default function HolidayCalendar({ holidays = DEFAULT_HOLIDAYS, onDateSel
             <h3 className="text-sm font-semibold text-slate-900 mb-3">Legend</h3>
             <div className="grid grid-cols-2 gap-3">
               <div className="flex items-center gap-2">
-                <div className="w-6 h-6 bg-red-500 rounded text-white text-xs flex items-center justify-center">🎉</div>
+                <div className="w-6 h-6 bg-orange-400 rounded text-white text-xs flex items-center justify-center">🎉</div>
                 <span className="text-sm text-slate-600">Holiday</span>
               </div>
               <div className="flex items-center gap-2">

@@ -72,6 +72,49 @@ async def get_tasks(
     return result.scalars().all(), total
 
 
+async def get_client_tasks(
+    db: AsyncSession,
+    tenant_id: int,
+    user_email: str,
+    page: int = 1,
+    page_size: int = 20,
+) -> Tuple[List[Task], int]:
+    """Get tasks assigned to a client/customer by their email"""
+    from app.models.customer import Customer
+    
+    # Find customer by email
+    customer_result = await db.execute(
+        select(Customer).where(
+            Customer.tenant_id == tenant_id,
+            Customer.email == user_email,
+            Customer.is_deleted == False,
+        )
+    )
+    customer = customer_result.scalar_one_or_none()
+    
+    if not customer:
+        return [], 0
+    
+    # Get tasks for this customer
+    query = select(Task).where(
+        Task.tenant_id == tenant_id,
+        Task.customer_id == customer.customer_id,
+        Task.is_deleted == False,
+    )
+    
+    count_result = await db.execute(select(func.count()).select_from(query.subquery()))
+    total = count_result.scalar()
+    
+    query = (
+        query
+        .offset((page - 1) * page_size)
+        .limit(page_size)
+        .order_by(Task.due_date.asc(), Task.priority.desc())
+    )
+    result = await db.execute(query)
+    return result.scalars().all(), total
+
+
 async def get_task(db: AsyncSession, tenant_id: int, task_id: int) -> Task:
     result = await db.execute(
         select(Task).where(

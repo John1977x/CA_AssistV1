@@ -72,7 +72,25 @@ export default function CustomerFormModal({ open, onClose, customer }: Props) {
 
   const mutation = useMutation({
     mutationFn: (data: FormData) => {
-      const payload = { ...data, pan: data.pan?.toUpperCase() || undefined, gstin: data.gstin?.toUpperCase() || undefined }
+      // Build payload with only non-empty values
+      const payload: any = {
+        customer_type: data.customer_type,
+        display_name: data.display_name,
+        phone: data.phone,
+      }
+      
+      // Add optional fields only if they have values
+      if (data.legal_name) payload.legal_name = data.legal_name
+      if (data.pan) payload.pan = data.pan.toUpperCase()
+      if (data.gstin) payload.gstin = data.gstin.toUpperCase()
+      if (data.email) payload.email = data.email
+      if (data.alternate_phone) payload.alternate_phone = data.alternate_phone
+      if (data.whatsapp) payload.whatsapp = data.whatsapp
+      if (data.date_of_birth) payload.date_of_birth = data.date_of_birth
+      if (data.date_of_incorporation) payload.date_of_incorporation = data.date_of_incorporation
+      if (data.source_channel) payload.source_channel = data.source_channel
+      if (data.notes) payload.notes = data.notes
+      
       return isEdit
         ? customersApi.update(customer!.customer_id, payload)
         : customersApi.create(payload as any)

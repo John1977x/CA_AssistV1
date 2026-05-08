@@ -13,7 +13,7 @@ type ViewType = 'dashboard' | 'calendar'
 
 export default function DashboardUnified() {
   const { user, company } = useAuthStoreV2()
-  const [currentView, setCurrentView] = useState<ViewType>('calendar')
+  const [currentView, setCurrentView] = useState<ViewType>('dashboard')
 
   if (!user || !company) {
     return (
@@ -45,8 +45,7 @@ export default function DashboardUnified() {
     <div className="min-h-screen bg-slate-50">
       {/* View Toggle */}
       <div className="sticky top-0 z-40 bg-white border-b border-slate-200 px-6 py-4">
-        <div className="max-w-7xl mx-auto flex items-center justify-between">
-          <h1 className="text-2xl font-bold text-slate-900">Dashboard</h1>
+        <div className="max-w-7xl mx-auto flex items-center justify-start gap-4">
           <div className="flex gap-2">
             <button
               onClick={() => setCurrentView('dashboard')}
