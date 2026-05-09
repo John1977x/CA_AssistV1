@@ -53,7 +53,7 @@ export default function AppRoutes() {
   return (
     <Routes>
       {/* Public Routes */}
-      <Route path="/" element={<PublicRoute><LandingPage /></PublicRoute>} />
+      <Route path="/" element={<PublicRoute><Navigate to="/login" replace /></PublicRoute>} />
       <Route path="/login" element={<PublicRoute><UnifiedLoginPage /></PublicRoute>} />
       <Route path="/register-owner" element={<PublicRoute><RegisterOwnerPage /></PublicRoute>} />
       <Route path="/manager/login" element={<PublicRoute><ManagerLoginPage /></PublicRoute>} />
