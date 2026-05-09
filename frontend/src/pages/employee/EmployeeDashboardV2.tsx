@@ -1,18 +1,37 @@
 import { useAuthStoreV2 } from '@/store/authStoreV2'
-import { CheckCircle, Clock, AlertCircle, Users, TrendingUp, Calendar } from 'lucide-react'
+import { CheckCircle, Clock, AlertCircle, Users, TrendingUp, Calendar, Loader } from 'lucide-react'
 import DocumentRequestsWidget from '@/components/owner/DocumentRequestsWidget'
+import { tasksApi } from '@/api/tasks'
+import { useEffect, useState } from 'react'
+import type { Task } from '@/types/task'
 
 export default function EmployeeDashboardV2() {
   const { user, company } = useAuthStoreV2()
+  const [myTasks, setMyTasks] = useState<Task[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  
   const hour = new Date().getHours()
   const greeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening'
 
-  const myTasks = [
-    { id: 1, title: 'GST Return - ABC Corp', client: 'ABC Corporation', status: 'completed', dueDate: '2026-04-15', priority: 'high' },
-    { id: 2, title: 'Income Tax Return - XYZ Ltd', client: 'XYZ Limited', status: 'in-progress', dueDate: '2026-05-31', priority: 'high' },
-    { id: 3, title: 'TDS Compliance - PQR Inc', client: 'PQR Industries', status: 'pending', dueDate: '2026-06-15', priority: 'medium' },
-    { id: 4, title: 'Audit Report - MNO Corp', client: 'MNO Corporation', status: 'pending', dueDate: '2026-06-30', priority: 'low' },
-  ]
+  useEffect(() => {
+    const fetchTasks = async () => {
+      try {
+        setLoading(true)
+        const response = await tasksApi.employeeTasks({ page: 1, page_size: 10 })
+        setMyTasks(response.items || [])
+        setError(null)
+      } catch (err) {
+        console.error('Failed to fetch employee tasks:', err)
+        setError('Failed to load tasks')
+        setMyTasks([])
+      } finally {
+        setLoading(false)
+      }
+    }
+    
+    fetchTasks()
+  }, [])
 
   const teamMembers = [
     { id: 1, name: 'Rahul Verma', role: 'Manager', status: 'online' },
@@ -21,19 +40,20 @@ export default function EmployeeDashboardV2() {
   ]
 
   const stats = [
-    { label: 'Completed Tasks', value: '24', icon: CheckCircle, color: 'bg-green-500' },
-    { label: 'In Progress', value: '5', icon: Clock, color: 'bg-blue-500' },
-    { label: 'Pending', value: '3', icon: AlertCircle, color: 'bg-orange-500' },
-    { label: 'Completion Rate', value: '89%', icon: TrendingUp, color: 'bg-purple-500' },
+    { label: 'Completed Tasks', value: myTasks.filter(t => t.status === 'COMPLETED').length, icon: CheckCircle, color: 'bg-green-500' },
+    { label: 'In Progress', value: myTasks.filter(t => t.status === 'IN_PROGRESS').length, icon: Clock, color: 'bg-blue-500' },
+    { label: 'Pending', value: myTasks.filter(t => t.status === 'PENDING').length, icon: AlertCircle, color: 'bg-orange-500' },
+    { label: 'Total Tasks', value: myTasks.length, icon: TrendingUp, color: 'bg-purple-500' },
   ]
 
   const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'completed':
+    switch (status?.toUpperCase()) {
+      case 'COMPLETED':
+      case 'FILED':
         return 'bg-green-100 text-green-800'
-      case 'in-progress':
+      case 'IN_PROGRESS':
         return 'bg-blue-100 text-blue-800'
-      case 'pending':
+      case 'PENDING':
         return 'bg-yellow-100 text-yellow-800'
       default:
         return 'bg-gray-100 text-gray-800'
@@ -41,12 +61,12 @@ export default function EmployeeDashboardV2() {
   }
 
   const getPriorityColor = (priority: string) => {
-    switch (priority) {
-      case 'high':
+    switch (priority?.toUpperCase()) {
+      case 'HIGH':
         return 'text-red-600'
-      case 'medium':
+      case 'MEDIUM':
         return 'text-yellow-600'
-      case 'low':
+      case 'LOW':
         return 'text-green-600'
       default:
         return 'text-gray-600'
@@ -54,15 +74,28 @@ export default function EmployeeDashboardV2() {
   }
 
   const getStatusIcon = (status: string) => {
-    switch (status) {
-      case 'completed':
+    switch (status?.toUpperCase()) {
+      case 'COMPLETED':
+      case 'FILED':
         return <CheckCircle size={16} className="text-green-600" />
-      case 'in-progress':
+      case 'IN_PROGRESS':
         return <Clock size={16} className="text-blue-600" />
-      case 'pending':
+      case 'PENDING':
         return <AlertCircle size={16} className="text-yellow-600" />
       default:
         return null
+    }
+  }
+
+  const formatDate = (dateString: string) => {
+    try {
+      return new Date(dateString).toLocaleDateString('en-IN', { 
+        year: 'numeric', 
+        month: 'short', 
+        day: 'numeric' 
+      })
+    } catch {
+      return dateString
     }
   }
 
@@ -112,31 +145,49 @@ export default function EmployeeDashboardV2() {
         {/* My Tasks */}
         <div className="lg:col-span-2 card p-6">
           <h2 className="text-lg font-bold text-slate-900 mb-4">My Tasks</h2>
-          <div className="space-y-3">
-            {myTasks.map((task) => (
-              <div
-                key={task.id}
-                className="flex items-center justify-between p-4 bg-slate-50 rounded-lg hover:bg-slate-100 transition-colors"
-              >
-                <div className="flex items-center gap-3 flex-1">
-                  {getStatusIcon(task.status)}
-                  <div className="flex-1">
-                    <h3 className="text-slate-900 font-semibold text-sm">{task.title}</h3>
-                    <p className="text-slate-500 text-xs">{task.client}</p>
+          {loading ? (
+            <div className="flex items-center justify-center py-8">
+              <Loader size={24} className="text-brand-600 animate-spin" />
+            </div>
+          ) : error ? (
+            <div className="p-4 bg-red-50 text-red-700 rounded-lg text-sm">
+              {error}
+            </div>
+          ) : myTasks.length === 0 ? (
+            <div className="p-4 bg-slate-50 text-slate-600 rounded-lg text-sm text-center">
+              No tasks assigned yet
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {myTasks.map((task) => (
+                <div
+                  key={task.task_id}
+                  className="flex items-center justify-between p-4 bg-slate-50 rounded-lg hover:bg-slate-100 transition-colors"
+                >
+                  <div className="flex items-center gap-3 flex-1">
+                    {getStatusIcon(task.status)}
+                    <div className="flex-1">
+                      <h3 className="text-slate-900 font-semibold text-sm">{task.task_title}</h3>
+                      <p className="text-slate-500 text-xs">{task.task_type_code}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    {task.priority && (
+                      <span className={`px-2 py-1 rounded text-xs font-medium ${getPriorityColor(task.priority)}`}>
+                        {task.priority.charAt(0).toUpperCase() + task.priority.slice(1).toLowerCase()}
+                      </span>
+                    )}
+                    <span className={`px-2 py-1 rounded text-xs font-medium ${getStatusColor(task.status)}`}>
+                      {task.status.charAt(0).toUpperCase() + task.status.slice(1).toLowerCase()}
+                    </span>
+                    {task.due_date && (
+                      <span className="text-slate-500 text-xs whitespace-nowrap">{formatDate(task.due_date)}</span>
+                    )}
                   </div>
                 </div>
-                <div className="flex items-center gap-3">
-                  <span className={`px-2 py-1 rounded text-xs font-medium ${getPriorityColor(task.priority)}`}>
-                    {task.priority.charAt(0).toUpperCase() + task.priority.slice(1)}
-                  </span>
-                  <span className={`px-2 py-1 rounded text-xs font-medium ${getStatusColor(task.status)}`}>
-                    {task.status.charAt(0).toUpperCase() + task.status.slice(1)}
-                  </span>
-                  <span className="text-slate-500 text-xs whitespace-nowrap">{task.dueDate}</span>
-                </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* Right Column - Team and Document Requests */}

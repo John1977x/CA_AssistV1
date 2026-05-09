@@ -215,7 +215,7 @@ function SidebarContent({ onClose }: { onClose?: () => void }) {
                     onClick={onClose}
                     className={clsx('sidebar-link', active && 'sidebar-link-active')}
                   >
-                    {active && <ChevronRight size={14} className="mr-auto flex-shrink-0" />}
+                    {active && <ChevronRight size={14} className="flex-shrink-0" />}
                     <item.icon size={16} className="flex-shrink-0" />
                     {item.label}
                   </Link>

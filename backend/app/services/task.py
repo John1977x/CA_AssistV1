@@ -115,6 +115,34 @@ async def get_client_tasks(
     return result.scalars().all(), total
 
 
+async def get_employee_tasks(
+    db: AsyncSession,
+    tenant_id: int,
+    user_id: int,
+    page: int = 1,
+    page_size: int = 20,
+) -> Tuple[List[Task], int]:
+    """Get tasks assigned to an employee by their user_id"""
+    # Get tasks assigned to this employee
+    query = select(Task).where(
+        Task.tenant_id == tenant_id,
+        Task.assigned_to_user_id == user_id,
+        Task.is_deleted == False,
+    )
+    
+    count_result = await db.execute(select(func.count()).select_from(query.subquery()))
+    total = count_result.scalar()
+    
+    query = (
+        query
+        .offset((page - 1) * page_size)
+        .limit(page_size)
+        .order_by(Task.due_date.asc(), Task.priority.desc())
+    )
+    result = await db.execute(query)
+    return result.scalars().all(), total
+
+
 async def get_task(db: AsyncSession, tenant_id: int, task_id: int) -> Task:
     result = await db.execute(
         select(Task).where(

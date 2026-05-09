@@ -25,6 +25,7 @@ import ClientDashboardV2 from '@/pages/client/ClientDashboardV2'
 import ClientDashboard from '@/pages/client/ClientDashboard'
 import ClientTasksPage from '@/pages/client/ClientTasksPage'
 import EmployeeDashboard from '@/pages/employee/EmployeeDashboard'
+import EmployeeTasksPage from '@/pages/employee/EmployeeTasksPage'
 
 // Management Pages
 import UsersPage from '@/pages/UsersPage'
@@ -75,6 +76,7 @@ export default function AppRoutes() {
         <Route path="/employee/dashboard" element={<EmployeeDashboardV2 />} />
         <Route path="/client/dashboard" element={<ClientDashboardV2 />} />
         <Route path="/client/tasks" element={<ClientTasksPage />} />
+        <Route path="/employee/tasks" element={<EmployeeTasksPage />} />
         
         {/* Main Pages */}
         <Route path="/dashboard" element={<DashboardPage />} />

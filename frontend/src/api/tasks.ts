@@ -17,6 +17,9 @@ export const tasksApi = {
   clientTasks: (params?: { page?: number; page_size?: number }) =>
     api.get<PaginatedResponse<Task>>('/companies/client/tasks', { params }).then(r => r.data),
 
+  employeeTasks: (params?: { page?: number; page_size?: number }) =>
+    api.get<PaginatedResponse<Task>>('/tasks/employee/assigned', { params }).then(r => r.data),
+
   get: (id: number) =>
     api.get<Task>(`/tasks/${id}`).then(r => r.data),
 

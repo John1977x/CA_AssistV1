@@ -45,6 +45,26 @@ async def get_client_tasks(
     )
 
 
+@router.get("/employee/assigned", response_model=PaginatedResponse)
+async def get_employee_tasks(
+    page: int = Query(1, ge=1),
+    page_size: int = Query(20, ge=1, le=100),
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_active_user),
+):
+    """Get tasks assigned to the current employee"""
+    tasks, total = await svc.get_employee_tasks(
+        db, current_user.tenant_id, current_user.user_id, page, page_size
+    )
+    return PaginatedResponse(
+        items=[TaskListOut.model_validate(t) for t in tasks],
+        total=total,
+        page=page,
+        page_size=page_size,
+        total_pages=math.ceil(total / page_size) if total else 1,
+    )
+
+
 @router.get("", response_model=PaginatedResponse)
 async def list_tasks(
     page:                int           = Query(1, ge=1),
