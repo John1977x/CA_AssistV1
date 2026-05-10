@@ -72,6 +72,18 @@ from app.models.social import (
     SocialScheduler
 )
 
+from app.models.ticket import (
+    Ticket,
+    TicketComment
+)
+
+from app.models.assignment import (
+    AssignmentTemplate,
+    AssignmentTemplateStep,
+    Assignment,
+    AssignmentStepSubmission
+)
+
 __all__ = [
     # Auth models
     "Subscription",
@@ -135,4 +147,14 @@ __all__ = [
     "SocialPostTemplate",
     "SocialPost",
     "SocialScheduler",
+    
+    # Ticket models
+    "Ticket",
+    "TicketComment",
+    
+    # Assignment models
+    "AssignmentTemplate",
+    "AssignmentTemplateStep",
+    "Assignment",
+    "AssignmentStepSubmission",
 ]

@@ -5,6 +5,8 @@ from app.api.v1.endpoints.users import router as users_router, roles_router, bra
 from app.api.v1.endpoints.customers import router as customers_router
 from app.api.v1.endpoints.enquiries import router as enquiries_router
 from app.api.v1.endpoints.tasks import router as tasks_router
+from app.api.v1.endpoints.assignments import router as assignments_router
+from app.api.v1.endpoints.tickets import router as tickets_router
 from app.api.v1.endpoints.billing import router as billing_router
 from app.api.v1.endpoints.subscription import router as subscription_router
 from app.api.v1.endpoints.companies import router as companies_router
@@ -23,6 +25,8 @@ api_router.include_router(branches_router)
 api_router.include_router(customers_router)
 api_router.include_router(enquiries_router)
 api_router.include_router(tasks_router)
+api_router.include_router(assignments_router)
+api_router.include_router(tickets_router)
 api_router.include_router(billing_router)
 api_router.include_router(subscription_router)
 api_router.include_router(companies_router, prefix="/companies", tags=["companies"])

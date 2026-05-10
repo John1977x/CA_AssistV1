@@ -1,0 +1,222 @@
+import { useEffect, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
+import { assignmentsApi, type Assignment } from '@/api/assignments'
+import { CheckCircle, Clock, AlertCircle, Search, Eye } from 'lucide-react'
+
+export default function EmployeeAssignmentsPage() {
+  const navigate = useNavigate()
+  const [assignments, setAssignments] = useState<Assignment[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const [searchTerm, setSearchTerm] = useState('')
+  const [statusFilter, setStatusFilter] = useState<string>('all')
+
+  useEffect(() => {
+    const fetchAssignments = async () => {
+      try {
+        setLoading(true)
+        const response = await assignmentsApi.list({ page: 1, page_size: 100 })
+        setAssignments(response.items || [])
+      } catch (err) {
+        console.error('Failed to fetch assignments:', err)
+        setError('Failed to load assignments')
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchAssignments()
+  }, [])
+
+  const getStatusColor = (status: string) => {
+    switch (status?.toUpperCase()) {
+      case 'APPROVED':
+        return 'bg-green-100 text-green-800'
+      case 'IN_PROGRESS':
+      case 'SUBMITTED':
+        return 'bg-blue-100 text-blue-800'
+      case 'ASSIGNED':
+        return 'bg-yellow-100 text-yellow-800'
+      case 'REJECTED':
+        return 'bg-red-100 text-red-800'
+      default:
+        return 'bg-gray-100 text-gray-800'
+    }
+  }
+
+  const getStatusIcon = (status: string) => {
+    switch (status?.toUpperCase()) {
+      case 'APPROVED':
+        return <CheckCircle size={18} className="text-green-600" />
+      case 'IN_PROGRESS':
+      case 'SUBMITTED':
+        return <Clock size={18} className="text-blue-600" />
+      case 'ASSIGNED':
+        return <AlertCircle size={18} className="text-yellow-600" />
+      default:
+        return null
+    }
+  }
+
+  const filteredAssignments = assignments.filter(assignment => {
+    const matchesSearch = assignment.title.toLowerCase().includes(searchTerm.toLowerCase())
+    const matchesStatus = statusFilter === 'all' || assignment.status?.toUpperCase() === statusFilter.toUpperCase()
+    return matchesSearch && matchesStatus
+  })
+
+  const stats = {
+    total: assignments.length,
+    approved: assignments.filter(a => a.status?.toUpperCase() === 'APPROVED').length,
+    inProgress: assignments.filter(a => ['IN_PROGRESS', 'SUBMITTED'].includes(a.status?.toUpperCase() || '')).length,
+    pending: assignments.filter(a => a.status?.toUpperCase() === 'ASSIGNED').length,
+  }
+
+  return (
+    <div className="p-6 max-w-7xl mx-auto">
+      {/* Header */}
+      <div className="mb-8">
+        <h1 className="text-3xl font-bold text-slate-900">My Assignments</h1>
+        <p className="text-slate-500 mt-2">Complete step-by-step assignments and upload your work</p>
+      </div>
+
+      {/* Stats */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+        <div className="bg-white rounded-lg border border-slate-200 p-4">
+          <p className="text-slate-500 text-sm">Total Assignments</p>
+          <p className="text-2xl font-bold text-slate-900 mt-1">{stats.total}</p>
+        </div>
+        <div className="bg-white rounded-lg border border-slate-200 p-4">
+          <p className="text-slate-500 text-sm">Approved</p>
+          <p className="text-2xl font-bold text-green-600 mt-1">{stats.approved}</p>
+        </div>
+        <div className="bg-white rounded-lg border border-slate-200 p-4">
+          <p className="text-slate-500 text-sm">In Progress</p>
+          <p className="text-2xl font-bold text-blue-600 mt-1">{stats.inProgress}</p>
+        </div>
+        <div className="bg-white rounded-lg border border-slate-200 p-4">
+          <p className="text-slate-500 text-sm">Pending</p>
+          <p className="text-2xl font-bold text-yellow-600 mt-1">{stats.pending}</p>
+        </div>
+      </div>
+
+      {/* Filters and Search */}
+      <div className="bg-white rounded-lg border border-slate-200 p-6 mb-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {/* Search */}
+          <div className="relative">
+            <Search className="absolute left-3 top-3 text-slate-400" size={20} />
+            <input
+              type="text"
+              placeholder="Search assignments..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full pl-10 pr-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+
+          {/* Status Filter */}
+          <select
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value)}
+            className="px-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+          >
+            <option value="all">All Status</option>
+            <option value="ASSIGNED">Assigned</option>
+            <option value="IN_PROGRESS">In Progress</option>
+            <option value="SUBMITTED">Submitted</option>
+            <option value="APPROVED">Approved</option>
+            <option value="REJECTED">Rejected</option>
+          </select>
+        </div>
+      </div>
+
+      {/* Assignments List */}
+      <div className="bg-white rounded-lg border border-slate-200 overflow-hidden">
+        {loading ? (
+          <div className="p-8 text-center">
+            <p className="text-slate-500">Loading assignments...</p>
+          </div>
+        ) : error ? (
+          <div className="p-8 text-center">
+            <p className="text-red-500">{error}</p>
+          </div>
+        ) : filteredAssignments.length === 0 ? (
+          <div className="p-8 text-center">
+            <p className="text-slate-500">
+              {assignments.length === 0 ? 'No assignments assigned yet' : 'No assignments match your search'}
+            </p>
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead className="bg-slate-50 border-b border-slate-200">
+                <tr>
+                  <th className="px-6 py-3 text-left text-sm font-semibold text-slate-900">Assignment</th>
+                  <th className="px-6 py-3 text-left text-sm font-semibold text-slate-900">Due Date</th>
+                  <th className="px-6 py-3 text-left text-sm font-semibold text-slate-900">Progress</th>
+                  <th className="px-6 py-3 text-left text-sm font-semibold text-slate-900">Score</th>
+                  <th className="px-6 py-3 text-left text-sm font-semibold text-slate-900">Status</th>
+                  <th className="px-6 py-3 text-left text-sm font-semibold text-slate-900">Action</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-200">
+                {filteredAssignments.map(assignment => (
+                  <tr key={assignment.assignment_id} className="hover:bg-slate-50 transition-colors">
+                    <td className="px-6 py-4">
+                      <div className="flex items-start gap-3">
+                        {getStatusIcon(assignment.status)}
+                        <div>
+                          <p className="font-medium text-slate-900">{assignment.title}</p>
+                          {assignment.description && (
+                            <p className="text-sm text-slate-500 line-clamp-1">{assignment.description}</p>
+                          )}
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4">
+                      <span className="text-sm text-slate-600">
+                        {new Date(assignment.due_date).toLocaleDateString('en-IN')}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="flex items-center gap-2">
+                        <div className="w-24 bg-slate-200 rounded-full h-2">
+                          <div
+                            className="bg-blue-600 h-2 rounded-full transition-all"
+                            style={{ width: `${assignment.completion_percentage || 0}%` }}
+                          ></div>
+                        </div>
+                        <span className="text-xs text-slate-600 w-8">{assignment.completion_percentage || 0}%</span>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4">
+                      {assignment.total_score ? (
+                        <span className="text-sm font-semibold text-slate-900">{assignment.total_score}/100</span>
+                      ) : (
+                        <span className="text-sm text-slate-500">-</span>
+                      )}
+                    </td>
+                    <td className="px-6 py-4">
+                      <span className={`inline-block px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(assignment.status)}`}>
+                        {assignment.status?.replace(/_/g, ' ') || 'ASSIGNED'}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4">
+                      <button
+                        onClick={() => navigate(`/employee/assignments/${assignment.assignment_id}`)}
+                        className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-100 transition-colors text-sm font-medium"
+                      >
+                        <Eye size={16} />
+                        View
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}

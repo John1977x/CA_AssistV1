@@ -26,6 +26,18 @@ import ClientDashboard from '@/pages/client/ClientDashboard'
 import ClientTasksPage from '@/pages/client/ClientTasksPage'
 import EmployeeDashboard from '@/pages/employee/EmployeeDashboard'
 import EmployeeTasksPage from '@/pages/employee/EmployeeTasksPage'
+import EmployeeAssignmentsPage from '@/pages/employee/EmployeeAssignmentsPage'
+import EmployeeAssignmentDetailPage from '@/pages/employee/EmployeeAssignmentDetailPage'
+import ManagerAssignmentsPage from '@/pages/manager/ManagerAssignmentsPage'
+import ManagerAssignmentReviewPage from '@/pages/manager/ManagerAssignmentReviewPage'
+import ManagerAssignTemplatesPage from '@/pages/manager/ManagerAssignTemplatesPage'
+import ManagerCreateAssignmentPage from '@/pages/manager/ManagerCreateAssignmentPage'
+import OwnerAssignmentsPage from '@/pages/owner/OwnerAssignmentsPage'
+import OwnerAssignTemplatesPage from '@/pages/owner/OwnerAssignTemplatesPage'
+import OwnerCreateAssignmentPage from '@/pages/owner/OwnerCreateAssignmentPage'
+import ClientTicketsPage from '@/pages/client/ClientTicketsPage'
+import ManagerTicketsPage from '@/pages/manager/ManagerTicketsPage'
+import OwnerTicketsPage from '@/pages/owner/OwnerTicketsPage'
 
 // Management Pages
 import UsersPage from '@/pages/UsersPage'
@@ -76,7 +88,24 @@ export default function AppRoutes() {
         <Route path="/employee/dashboard" element={<EmployeeDashboardV2 />} />
         <Route path="/client/dashboard" element={<ClientDashboardV2 />} />
         <Route path="/client/tasks" element={<ClientTasksPage />} />
+        <Route path="/client/tickets" element={<ClientTicketsPage />} />
         <Route path="/employee/tasks" element={<EmployeeTasksPage />} />
+        <Route path="/employee/assignments" element={<EmployeeAssignmentsPage />} />
+        <Route path="/employee/assignments/:assignmentId" element={<EmployeeAssignmentDetailPage />} />
+        
+        {/* Manager Assignment Routes */}
+        <Route path="/manager/assignments" element={<ManagerAssignmentsPage />} />
+        <Route path="/manager/assignments/:assignmentId" element={<ManagerAssignmentReviewPage />} />
+        <Route path="/manager/assign-templates" element={<ManagerAssignTemplatesPage />} />
+        <Route path="/manager/assign-template/:templateId" element={<ManagerCreateAssignmentPage />} />
+        <Route path="/manager/tickets" element={<ManagerTicketsPage />} />
+        
+        {/* Owner Assignment Routes */}
+        <Route path="/owner/assignments" element={<OwnerAssignmentsPage />} />
+        <Route path="/owner/assignments/:assignmentId" element={<ManagerAssignmentReviewPage />} />
+        <Route path="/owner/assign-templates" element={<OwnerAssignTemplatesPage />} />
+        <Route path="/owner/assign-template/:templateId" element={<OwnerCreateAssignmentPage />} />
+        <Route path="/owner/tickets" element={<OwnerTicketsPage />} />
         
         {/* Main Pages */}
         <Route path="/dashboard" element={<DashboardPage />} />

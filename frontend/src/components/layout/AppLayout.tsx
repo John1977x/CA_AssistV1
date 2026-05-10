@@ -39,6 +39,14 @@ const OWNER_NAV_GROUPS = [
       { to: '/tasks', icon: ClipboardList, label: 'Tasks' },
       { to: '/enquiries', icon: Mail, label: 'Enquiries' },
       { to: '/owner/document-requests', icon: FileText, label: 'Document Requests' },
+      { to: '/owner/tickets', icon: Ticket, label: 'Tickets' },
+    ],
+  },
+  {
+    label: 'Learning',
+    items: [
+      { to: '/owner/assign-templates', icon: BookOpen, label: 'Assign' },
+      { to: '/owner/assignments', icon: ClipboardList, label: 'Assignments' },
     ],
   },
   {
@@ -73,6 +81,14 @@ const MANAGER_NAV_GROUPS = [
       { to: '/manager/tasks', icon: ClipboardList, label: 'Tasks' },
       { to: '/manager/enquiries', icon: Mail, label: 'Enquiries' },
       { to: '/manager/document-requests', icon: FileText, label: 'Document Requests' },
+      { to: '/manager/tickets', icon: Ticket, label: 'Tickets' },
+    ],
+  },
+  {
+    label: 'Learning',
+    items: [
+      { to: '/manager/assign-templates', icon: BookOpen, label: 'Assign' },
+      { to: '/manager/assignments', icon: ClipboardList, label: 'Assignments' },
     ],
   },
   {
@@ -107,6 +123,12 @@ const EMPLOYEE_NAV_GROUPS = [
       { to: '/employee/document-requests', icon: FileText, label: 'Document Requests' },
     ],
   },
+  {
+    label: 'Learning',
+    items: [
+      { to: '/employee/assignments', icon: BookOpen, label: 'Assignments' },
+    ],
+  },
 ]
 
 // Client Navigation
@@ -123,6 +145,7 @@ const CLIENT_NAV_GROUPS = [
       { to: '/client/tasks', icon: ClipboardList, label: 'Tasks' },
       { to: '/client/enquiries', icon: Mail, label: 'Enquiries' },
       { to: '/client/document-requests', icon: FileText, label: 'Document Requests' },
+      { to: '/client/tickets', icon: Ticket, label: 'Tickets' },
     ],
   },
 ]
