@@ -40,6 +40,7 @@ const OWNER_NAV_GROUPS = [
       { to: '/enquiries', icon: Mail, label: 'Enquiries' },
       { to: '/owner/document-requests', icon: FileText, label: 'Document Requests' },
       { to: '/owner/tickets', icon: Ticket, label: 'Tickets' },
+      { to: '/doc-register', icon: BookOpen, label: 'Register' },
     ],
   },
   {
@@ -82,6 +83,7 @@ const MANAGER_NAV_GROUPS = [
       { to: '/manager/enquiries', icon: Mail, label: 'Enquiries' },
       { to: '/manager/document-requests', icon: FileText, label: 'Document Requests' },
       { to: '/manager/tickets', icon: Ticket, label: 'Tickets' },
+      { to: '/doc-register', icon: BookOpen, label: 'Register' },
     ],
   },
   {

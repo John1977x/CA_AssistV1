@@ -60,6 +60,7 @@ import {
   GSTPage, ITRPage, PortfolioPage,
   RolesPage, SettingsPage, ProfilePage, SecurityPage, NotFoundPage,
 } from '@/pages/PlaceholderPages'
+import DocRegisterPage from '@/pages/register/DocRegisterPage'
 
 export default function AppRoutes() {
   return (
@@ -141,6 +142,7 @@ export default function AppRoutes() {
         <Route path="/settings" element={<SettingsPage />} />
         <Route path="/profile" element={<ProfilePage />} />
         <Route path="/security" element={<SecurityPage />} />
+        <Route path="/doc-register" element={<DocRegisterPage />} />
       </Route>
 
       <Route path="*" element={<NotFoundPage />} />
