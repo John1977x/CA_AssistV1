@@ -706,12 +706,42 @@ async def add_client(
         if existing_user:
             client_user_id = existing_user.user_id
         else:
+            # Get company to resolve tenant_id
+            company_result = await db.execute(
+                select(Company).where(Company.company_id == company_uuid)
+            )
+            company = company_result.scalar_one_or_none()
+            if not company:
+                raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Company not found")
+
+            # Look up CLIENT role for this tenant, fall back to any available role
+            client_role_result = await db.execute(
+                select(UserRole).where(
+                    UserRole.tenant_id == company.owner.tenant_id,
+                    UserRole.role_code == "CLIENT",
+                ).limit(1)
+            )
+            client_role = client_role_result.scalar_one_or_none()
+            if not client_role:
+                fallback_result = await db.execute(
+                    select(UserRole).where(UserRole.tenant_id == company.owner.tenant_id).limit(1)
+                )
+                client_role = fallback_result.scalar_one_or_none()
+            if not client_role:
+                raise HTTPException(
+                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                    detail="No roles available for this tenant",
+                )
+
             # Create new user with default password
             default_password = "CAassists@123456"
+            name_parts = (data.client_name or "Client User").split()
             new_user = User(
+                tenant_id=company.owner.tenant_id,
+                role_id=client_role.role_id,
                 email=data.email,
-                first_name=data.client_name.split()[0] if data.client_name else "Client",
-                last_name=data.client_name.split()[-1] if len(data.client_name.split()) > 1 else "User",
+                first_name=name_parts[0],
+                last_name=name_parts[-1] if len(name_parts) > 1 else "User",
                 password_hash=hash_password(default_password),
                 phone=data.phone,
                 is_owner=False,
