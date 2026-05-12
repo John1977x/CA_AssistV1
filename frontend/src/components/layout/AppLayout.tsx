@@ -123,6 +123,7 @@ const EMPLOYEE_NAV_GROUPS = [
       { to: '/employee/tasks', icon: ClipboardList, label: 'Tasks' },
       { to: '/employee/enquiries', icon: Mail, label: 'Enquiries' },
       { to: '/employee/document-requests', icon: FileText, label: 'Document Requests' },
+      { to: '/doc-register', icon: BookOpen, label: 'Register' },
     ],
   },
   {
@@ -148,6 +149,7 @@ const CLIENT_NAV_GROUPS = [
       { to: '/client/enquiries', icon: Mail, label: 'Enquiries' },
       { to: '/client/document-requests', icon: FileText, label: 'Document Requests' },
       { to: '/client/tickets', icon: Ticket, label: 'Tickets' },
+      { to: '/doc-register', icon: BookOpen, label: 'Register' },
     ],
   },
 ]

@@ -26,11 +26,17 @@ async def get_registers(
     in_out_ward: Optional[str] = None,
     doc_type: Optional[str] = None,
     search: Optional[str] = None,
+    filter_employee_id: Optional[int] = None,
+    filter_client_id: Optional[int] = None,
 ) -> Tuple[List[Register], int]:
     query = select(Register).where(
         Register.tenant_id == tenant_id,
         Register.is_deleted == False,
     )
+    if filter_employee_id is not None:
+        query = query.where(Register.employee_id == filter_employee_id)
+    if filter_client_id is not None:
+        query = query.where(Register.client_id == filter_client_id)
     if in_out_ward:
         query = query.where(Register.in_out_ward == in_out_ward)
     if doc_type:
@@ -92,10 +98,19 @@ async def delete_register(db: AsyncSession, tenant_id: int, register_id: int):
     await db.commit()
 
 
-async def get_stats(db: AsyncSession, tenant_id: int) -> dict:
-    base = (Register.tenant_id == tenant_id, Register.is_deleted == False)
-    total     = (await db.execute(select(func.count(Register.register_id)).where(*base))).scalar() or 0
-    inward    = (await db.execute(select(func.count(Register.register_id)).where(*base, Register.in_out_ward == "INWARD"))).scalar() or 0
-    outward   = (await db.execute(select(func.count(Register.register_id)).where(*base, Register.in_out_ward == "OUTWARD"))).scalar() or 0
-    pend_ack  = (await db.execute(select(func.count(Register.register_id)).where(*base, Register.acknowledgement == None))).scalar() or 0
+async def get_stats(
+    db: AsyncSession,
+    tenant_id: int,
+    filter_employee_id: Optional[int] = None,
+    filter_client_id: Optional[int] = None,
+) -> dict:
+    base = [Register.tenant_id == tenant_id, Register.is_deleted == False]
+    if filter_employee_id is not None:
+        base.append(Register.employee_id == filter_employee_id)
+    if filter_client_id is not None:
+        base.append(Register.client_id == filter_client_id)
+    total    = (await db.execute(select(func.count(Register.register_id)).where(*base))).scalar() or 0
+    inward   = (await db.execute(select(func.count(Register.register_id)).where(*base, Register.in_out_ward == "INWARD"))).scalar() or 0
+    outward  = (await db.execute(select(func.count(Register.register_id)).where(*base, Register.in_out_ward == "OUTWARD"))).scalar() or 0
+    pend_ack = (await db.execute(select(func.count(Register.register_id)).where(*base, Register.acknowledgement == None))).scalar() or 0
     return {"total": total, "inward": inward, "outward": outward, "pending_ack": pend_ack}

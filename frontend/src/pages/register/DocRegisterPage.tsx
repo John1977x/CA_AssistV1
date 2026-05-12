@@ -233,8 +233,11 @@ function RegisterModal({ open, onClose, entry, clients, employees, ownerId }: Re
 
 // ── Main Page ─────────────────────────────────────────────────────────────────
 export default function DocRegisterPage() {
-  const qc      = useQueryClient()
-  const { user } = useAuthStoreV2()
+  const qc               = useQueryClient()
+  const { user, company } = useAuthStoreV2()
+  const role             = company?.role   // 'OWNER' | 'MANAGER' | 'EMPLOYEE' | 'CLIENT'
+  const canCreate        = role === 'OWNER' || role === 'MANAGER'
+  const canDelete        = role === 'OWNER' || role === 'MANAGER'
 
   const [wardFilter,    setWardFilter]    = useState<'' | 'INWARD' | 'OUTWARD'>('')
   const [docTypeFilter, setDocTypeFilter] = useState('')
@@ -313,9 +316,11 @@ export default function DocRegisterPage() {
           <h1 className="text-xl font-bold text-slate-900">Inward / Outward Register</h1>
           <p className="text-sm text-slate-500 mt-0.5">{total} entr{total !== 1 ? 'ies' : 'y'}</p>
         </div>
-        <button onClick={openCreate} className="btn-primary">
-          <Plus size={15} /> New Entry
-        </button>
+        {canCreate && (
+          <button onClick={openCreate} className="btn-primary">
+            <Plus size={15} /> New Entry
+          </button>
+        )}
       </div>
 
       {/* Stats */}
@@ -405,11 +410,11 @@ export default function DocRegisterPage() {
                       icon={<BookOpen size={24} />}
                       title="No entries found"
                       description="Start tracking your inward and outward correspondence"
-                      action={
+                      action={canCreate ? (
                         <button onClick={openCreate} className="btn-primary btn-sm">
                           <Plus size={13} /> New Entry
                         </button>
-                      }
+                      ) : undefined}
                     />
                   </td>
                 </tr>
@@ -447,14 +452,16 @@ export default function DocRegisterPage() {
                         >
                           <Pencil size={13} />
                         </button>
-                        <button
-                          onClick={() => confirmDelete(e)}
-                          className="p-1.5 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 transition-colors"
-                          title="Delete"
-                          disabled={deleteMutation.isPending}
-                        >
-                          <Trash2 size={13} />
-                        </button>
+                        {canDelete && (
+                          <button
+                            onClick={() => confirmDelete(e)}
+                            className="p-1.5 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 transition-colors"
+                            title="Delete"
+                            disabled={deleteMutation.isPending}
+                          >
+                            <Trash2 size={13} />
+                          </button>
+                        )}
                       </div>
                     </td>
                   </tr>
