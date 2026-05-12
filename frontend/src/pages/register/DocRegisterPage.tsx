@@ -236,7 +236,7 @@ export default function DocRegisterPage() {
   const qc               = useQueryClient()
   const { user, company } = useAuthStoreV2()
   const role             = company?.role   // 'OWNER' | 'MANAGER' | 'EMPLOYEE' | 'CLIENT'
-  const canCreate        = role === 'OWNER' || role === 'MANAGER'
+  const canCreate        = true
   const canDelete        = role === 'OWNER' || role === 'MANAGER'
 
   const [wardFilter,    setWardFilter]    = useState<'' | 'INWARD' | 'OUTWARD'>('')

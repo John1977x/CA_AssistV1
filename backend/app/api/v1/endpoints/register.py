@@ -91,9 +91,6 @@ async def create_entry(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    role = await _get_role(db, current_user.user_id)
-    if role == "CLIENT":
-        raise HTTPException(status_code=403, detail="Clients cannot create register entries.")
     return await register_svc.create_register(db, current_user.tenant_id, data)
 
 
