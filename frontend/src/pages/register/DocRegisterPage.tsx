@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useForm, Controller } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -70,19 +70,26 @@ function RegisterModal({ open, onClose, entry, clients, employees, ownerId }: Re
 
   const { register, handleSubmit, reset, control, formState: { errors } } = useForm<FormData>({
     resolver: zodResolver(schema),
-    defaultValues: entry
-      ? {
-          in_out_ward:     entry.in_out_ward,
-          doc_date:        entry.doc_date,
-          doc_type:        entry.doc_type,
-          doc_description: entry.doc_description,
-          client_id:       entry.client_id ?? null,
-          employee_id:     entry.employee_id ?? null,
-          sent_date:       entry.sent_date ?? '',
-          acknowledgement: entry.acknowledgement ?? '',
-        }
-      : { in_out_ward: 'INWARD', doc_date: '', doc_type: '', doc_description: '' },
+    defaultValues: { in_out_ward: 'INWARD', doc_date: '', doc_type: '', doc_description: '' },
   })
+
+  // Re-populate form whenever the entry being edited changes
+  useEffect(() => {
+    if (entry) {
+      reset({
+        in_out_ward:     entry.in_out_ward,
+        doc_date:        entry.doc_date,
+        doc_type:        entry.doc_type,
+        doc_description: entry.doc_description,
+        client_id:       entry.client_id   ?? null,
+        employee_id:     entry.employee_id ?? null,
+        sent_date:       entry.sent_date   ?? '',
+        acknowledgement: entry.acknowledgement ?? '',
+      })
+    } else {
+      reset({ in_out_ward: 'INWARD', doc_date: '', doc_type: '', doc_description: '' })
+    }
+  }, [entry, reset])
 
   const mutation = useMutation({
     mutationFn: (data: FormData) => {
