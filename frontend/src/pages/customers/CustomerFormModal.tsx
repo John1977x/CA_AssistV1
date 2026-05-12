@@ -2,10 +2,11 @@ import { useEffect } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
-import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Loader2 } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { customersApi } from '@/api/customers'
+import { usersApi } from '@/api/users'
 import { Modal, FormField } from '@/components/ui'
 import type { Customer } from '@/types/customer'
 
@@ -23,6 +24,7 @@ const schema = z.object({
   date_of_incorporation: z.string().optional(),
   source_channel: z.string().optional(),
   notes:          z.string().optional(),
+  assigned_user_id: z.number().nullable().optional(),
 })
 
 type FormData = z.infer<typeof schema>
@@ -40,13 +42,19 @@ export default function CustomerFormModal({ open, onClose, customer }: Props) {
   const qc = useQueryClient()
   const isEdit = !!customer
 
-  const { register, handleSubmit, reset, watch, formState: { errors } } = useForm<FormData>({
+  const { register, handleSubmit, reset, watch, setValue, formState: { errors } } = useForm<FormData>({
     resolver: zodResolver(schema),
     defaultValues: { customer_type: 'INDIVIDUAL' },
   })
 
   const customerType = watch('customer_type')
   const isCompany = !['INDIVIDUAL', 'HUF'].includes(customerType)
+
+  const { data: usersData } = useQuery({
+    queryKey: ['users-dropdown'],
+    queryFn: () => usersApi.list({ page_size: 100, status: 'ACTIVE' }),
+  })
+  const employees = usersData?.items || []
 
   useEffect(() => {
     if (customer) {
@@ -64,9 +72,10 @@ export default function CustomerFormModal({ open, onClose, customer }: Props) {
         date_of_incorporation: customer.date_of_incorporation || '',
         source_channel: customer.source_channel || '',
         notes:          customer.notes || '',
+        assigned_user_id: customer.assigned_user_id ?? null,
       })
     } else {
-      reset({ customer_type: 'INDIVIDUAL' })
+      reset({ customer_type: 'INDIVIDUAL', assigned_user_id: null })
     }
   }, [customer, open])
 
@@ -90,7 +99,8 @@ export default function CustomerFormModal({ open, onClose, customer }: Props) {
       if (data.date_of_incorporation) payload.date_of_incorporation = data.date_of_incorporation
       if (data.source_channel) payload.source_channel = data.source_channel
       if (data.notes) payload.notes = data.notes
-      
+      if (data.assigned_user_id != null) payload.assigned_user_id = data.assigned_user_id
+
       return isEdit
         ? customersApi.update(customer!.customer_id, payload)
         : customersApi.create(payload as any)
@@ -187,6 +197,22 @@ export default function CustomerFormModal({ open, onClose, customer }: Props) {
             </select>
           </FormField>
         </div>
+
+        {/* Assigned Employee */}
+        <FormField label="Assigned Employee" hint="Employee responsible for this client">
+          <select
+            className="input"
+            value={watch('assigned_user_id') ?? ''}
+            onChange={e => setValue('assigned_user_id', e.target.value ? Number(e.target.value) : null)}
+          >
+            <option value="">— None —</option>
+            {employees.map(u => (
+              <option key={u.user_id} value={u.user_id}>
+                {u.display_name || `${u.first_name} ${u.last_name}`}
+              </option>
+            ))}
+          </select>
+        </FormField>
 
         {/* Notes */}
         <FormField label="Internal Notes">

@@ -5,6 +5,7 @@ import {
   ChevronLeft, ChevronRight, RefreshCw, Download,
 } from 'lucide-react'
 import { customersApi } from '@/api/customers'
+import { usersApi } from '@/api/users'
 import { StatCard, StatusBadge, EmptyState, Tabs } from '@/components/ui'
 import CustomerFormModal from '@/pages/customers/CustomerFormModal'
 import CustomerDrawer from '@/pages/customers/CustomerDrawer'
@@ -49,6 +50,14 @@ export default function OwnerClientsPage() {
     queryKey: ['customer-stats'],
     queryFn: customersApi.stats,
   })
+
+  const { data: usersData } = useQuery({
+    queryKey: ['users-dropdown'],
+    queryFn: () => usersApi.list({ page_size: 100, status: 'ACTIVE' }),
+  })
+  const employeeMap = Object.fromEntries(
+    (usersData?.items || []).map(u => [u.user_id, u.display_name || `${u.first_name} ${u.last_name}`])
+  )
 
   const { data, isLoading, isFetching } = useQuery({
     queryKey: ['customers', page, search, statusFilter, typeFilter, kycFilter],
@@ -147,6 +156,7 @@ export default function OwnerClientsPage() {
                 <th className="table-th">Type</th>
                 <th className="table-th">PAN / GSTIN</th>
                 <th className="table-th">Contact</th>
+                <th className="table-th">Assigned To</th>
                 <th className="table-th">KYC</th>
                 <th className="table-th">Status</th>
                 <th className="table-th">Since</th>
@@ -154,11 +164,11 @@ export default function OwnerClientsPage() {
             </thead>
             <tbody className="divide-y divide-slate-100">
               {isLoading ? (
-                <tr><td colSpan={7} className="py-16 text-center">
+                <tr><td colSpan={8} className="py-16 text-center">
                   <div className="animate-spin w-6 h-6 border-2 border-brand-600 border-t-transparent rounded-full mx-auto" />
                 </td></tr>
               ) : customers.length === 0 ? (
-                <tr><td colSpan={7}>
+                <tr><td colSpan={8}>
                   <EmptyState
                     icon={<Users size={24} />}
                     title="No clients found"
@@ -201,6 +211,12 @@ export default function OwnerClientsPage() {
                     <td className="table-td">
                       <p className="text-sm text-slate-700">{c.phone}</p>
                       {c.email && <p className="text-xs text-slate-400">{c.email}</p>}
+                    </td>
+                    <td className="table-td">
+                      {c.assigned_user_id
+                        ? <span className="text-sm text-slate-700">{employeeMap[c.assigned_user_id] || `#${c.assigned_user_id}`}</span>
+                        : <span className="text-slate-300 text-xs">—</span>
+                      }
                     </td>
                     <td className="table-td">
                       <StatusBadge status={c.kyc_status} />
