@@ -29,12 +29,6 @@ from app.models.billing import (
     PaymentReceived
 )
 
-from app.models.company import (
-    TenantCompany,
-    CustomerCompany,
-    ClientDocument
-)
-
 from app.models.events import (
     CustomerEvent,
     CustomerEventNotification
@@ -84,6 +78,17 @@ from app.models.assignment import (
     AssignmentStepSubmission
 )
 
+from app.models.compliance import (
+    Compliance,
+    ComplianceTask,
+    ComplianceHistory,
+    ComplianceReminder
+)
+
+# Note: Deprecated models removed
+# - company.py (replaced by company_v2.py)
+# - tenant_companies, customer_companies, client_documents tables removed
+
 __all__ = [
     # Auth models
     "Subscription",
@@ -110,11 +115,6 @@ __all__ = [
     "TimeLog",
     "Expense",
     "PaymentReceived",
-    
-    # Company models
-    "TenantCompany",
-    "CustomerCompany",
-    "ClientDocument",
     
     # Event models
     "CustomerEvent",
@@ -157,4 +157,10 @@ __all__ = [
     "AssignmentTemplateStep",
     "Assignment",
     "AssignmentStepSubmission",
+    
+    # Compliance models
+    "Compliance",
+    "ComplianceTask",
+    "ComplianceHistory",
+    "ComplianceReminder",
 ]

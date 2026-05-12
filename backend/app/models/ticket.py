@@ -2,8 +2,9 @@ from sqlalchemy import (
     Boolean, Column, Date, DateTime, ForeignKey,
     Integer, String, Text, func, ARRAY
 )
-from sqlalchemy.dialects.postgresql import JSONB
+from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import relationship
+import uuid
 from app.db.session import Base
 
 

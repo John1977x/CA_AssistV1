@@ -3,10 +3,11 @@ from sqlalchemy import (
     Integer, Numeric, SmallInteger, String, Text, ARRAY,
     func, text
 )
-from sqlalchemy.dialects.postgresql import JSONB
+from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import relationship, Mapped, mapped_column
 from datetime import datetime, date
 from typing import Optional, List
+import uuid
 from app.db.session import Base
 
 
@@ -42,7 +43,7 @@ class Subscription(Base):
 class SubscriptionHistory(Base):
     __tablename__ = "subscription_history"
 
-    history_id              = Column(Integer, primary_key=True, autoincrement=True)
+    history_id              = Column(BigInteger, primary_key=True, autoincrement=True)
     tenant_id               = Column(Integer, ForeignKey("tenant.tenant_id"), nullable=False)
     subscription_id         = Column(Integer, ForeignKey("subscription.subscription_id"), nullable=False)
     previous_subscription_id= Column(Integer, ForeignKey("subscription.subscription_id"))
