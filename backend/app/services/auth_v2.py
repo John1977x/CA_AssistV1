@@ -573,31 +573,46 @@ async def add_team_member(
             select(Company).where(Company.company_id == company_uuid)
         )
         company = company_result.scalar_one_or_none()
-        
+
         if not company:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="Company not found"
             )
-        
-        # Get a valid role for the tenant (use EMPLOYEE role or first available)
+
+        # Explicitly fetch owner to avoid lazy-load in async context
+        tm_owner_result = await db.execute(
+            select(User).where(User.user_id == company.owner_id)
+        )
+        tm_owner = tm_owner_result.scalar_one_or_none()
+        if not tm_owner:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Company owner not found")
+        tm_tenant_id = tm_owner.tenant_id
+
+        # Get a valid role for the tenant (EMPLOYEE role or first available)
         role_result = await db.execute(
             select(UserRole).where(
-                UserRole.tenant_id == company.owner.tenant_id
+                UserRole.tenant_id == tm_tenant_id,
+                UserRole.role_code == "EMPLOYEE",
             ).limit(1)
         )
         valid_role = role_result.scalar_one_or_none()
-        
+        if not valid_role:
+            fallback_role_result = await db.execute(
+                select(UserRole).where(UserRole.tenant_id == tm_tenant_id).limit(1)
+            )
+            valid_role = fallback_role_result.scalar_one_or_none()
+
         if not valid_role:
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 detail="No roles available for this tenant"
             )
-        
+
         default_password = "CAassists@123456"
         new_user = User(
-            tenant_id=company.owner.tenant_id,  # Use company owner's tenant
-            role_id=valid_role.role_id,  # Use valid role from tenant
+            tenant_id=tm_tenant_id,
+            role_id=valid_role.role_id,
             first_name=data.first_name,
             last_name=data.last_name,
             email=data.email,
@@ -706,7 +721,7 @@ async def add_client(
         if existing_user:
             client_user_id = existing_user.user_id
         else:
-            # Get company to resolve tenant_id
+            # Get company to resolve tenant_id via owner
             company_result = await db.execute(
                 select(Company).where(Company.company_id == company_uuid)
             )
@@ -714,17 +729,26 @@ async def add_client(
             if not company:
                 raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Company not found")
 
+            # Explicitly fetch owner to avoid lazy-load in async context
+            owner_result = await db.execute(
+                select(User).where(User.user_id == company.owner_id)
+            )
+            owner = owner_result.scalar_one_or_none()
+            if not owner:
+                raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Company owner not found")
+            tenant_id = owner.tenant_id
+
             # Look up CLIENT role for this tenant, fall back to any available role
             client_role_result = await db.execute(
                 select(UserRole).where(
-                    UserRole.tenant_id == company.owner.tenant_id,
+                    UserRole.tenant_id == tenant_id,
                     UserRole.role_code == "CLIENT",
                 ).limit(1)
             )
             client_role = client_role_result.scalar_one_or_none()
             if not client_role:
                 fallback_result = await db.execute(
-                    select(UserRole).where(UserRole.tenant_id == company.owner.tenant_id).limit(1)
+                    select(UserRole).where(UserRole.tenant_id == tenant_id).limit(1)
                 )
                 client_role = fallback_result.scalar_one_or_none()
             if not client_role:
@@ -737,7 +761,7 @@ async def add_client(
             default_password = "CAassists@123456"
             name_parts = (data.client_name or "Client User").split()
             new_user = User(
-                tenant_id=company.owner.tenant_id,
+                tenant_id=tenant_id,
                 role_id=client_role.role_id,
                 email=data.email,
                 first_name=name_parts[0],
