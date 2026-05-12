@@ -201,7 +201,11 @@ async def authenticate_user(
     # 2FA check
     if user.is_two_factor_enabled:
         if not data.totp_code:
-            raise HTTPException(status_code=200, detail="2FA_REQUIRED", headers={"X-2FA-Required": "true"})
+            raise HTTPException(
+                status_code=401,
+                detail={"code": "2FA_REQUIRED", "message": "Two-factor authentication code required."},
+                headers={"X-2FA-Required": "true"},
+            )
         if not verify_totp(user.two_factor_secret, data.totp_code):
             await log_failure("Invalid 2FA code")
             raise HTTPException(status_code=401, detail="Invalid 2FA code.")
@@ -284,7 +288,7 @@ async def forgot_password(db: AsyncSession, email: str):
     await db.execute(
         update(User)
         .where(User.user_id == user.user_id)
-        .values(invite_token=token, invite_expiry=expiry)
+        .values(reset_token=token, reset_expiry=expiry)
     )
     await db.commit()
 
@@ -298,8 +302,8 @@ async def reset_password(db: AsyncSession, token: str, new_password: str):
     now = datetime.now(timezone.utc)
     result = await db.execute(
         select(User).where(
-            User.invite_token == token,
-            User.invite_expiry > now,
+            User.reset_token == token,
+            User.reset_expiry > now,
             User.is_deleted == False,
         )
     )
@@ -317,8 +321,8 @@ async def reset_password(db: AsyncSession, token: str, new_password: str):
         .values(
             password_hash=hash_password(new_password),
             password_changed_at=now,
-            invite_token=None,
-            invite_expiry=None,
+            reset_token=None,
+            reset_expiry=None,
             failed_login_attempts=0,
             locked_until=None,
         )

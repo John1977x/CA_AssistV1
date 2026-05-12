@@ -1,7 +1,6 @@
 from pydantic_settings import BaseSettings
 from pydantic import AnyHttpUrl, EmailStr, field_validator
 from typing import List, Optional
-import secrets
 
 
 class Settings(BaseSettings):
@@ -12,7 +11,7 @@ class Settings(BaseSettings):
     API_V1_STR: str = "/api/v1"
 
     # Security
-    SECRET_KEY: str = secrets.token_urlsafe(32)
+    SECRET_KEY: str = "change-me-before-deploying-use-secrets-token-urlsafe-32"
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60
     REFRESH_TOKEN_EXPIRE_DAYS: int = 7
@@ -22,8 +21,8 @@ class Settings(BaseSettings):
     PASSWORD_MIN_LENGTH: int = 8
 
     # Database
-    DATABASE_URL: str = "postgresql+asyncpg://postgres:password@localhost:5432/ca_assists"
-    DATABASE_URL_SYNC: str = "postgresql://postgres:password@localhost:5432/ca_assists"
+    DATABASE_URL: str = "postgresql+asyncpg://postgres:postgres@localhost:5432/ca_assists"
+    DATABASE_URL_SYNC: str = "postgresql://postgres:postgres@localhost:5432/ca_assists"
 
     # Redis
     REDIS_URL: str = "redis://localhost:6379/0"

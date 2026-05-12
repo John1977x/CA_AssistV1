@@ -2,18 +2,28 @@ import { Navigate, useLocation } from 'react-router-dom'
 import { useAuthStoreV2 } from '@/store/authStoreV2'
 import { useEffect, useState } from 'react'
 
+function useHydrated() {
+  const [isHydrated, setIsHydrated] = useState(
+    () => useAuthStoreV2.persist.hasHydrated()
+  )
+
+  useEffect(() => {
+    if (useAuthStoreV2.persist.hasHydrated()) {
+      setIsHydrated(true)
+      return
+    }
+    const unsub = useAuthStoreV2.persist.onFinishHydration(() => setIsHydrated(true))
+    return unsub
+  }, [])
+
+  return isHydrated
+}
+
 export function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const isAuthenticated = useAuthStoreV2(s => s.isAuthenticated)
   const location = useLocation()
-  const [isHydrated, setIsHydrated] = useState(false)
+  const isHydrated = useHydrated()
 
-  useEffect(() => {
-    // Give Zustand persist middleware time to hydrate from localStorage
-    const timer = setTimeout(() => setIsHydrated(true), 150)
-    return () => clearTimeout(timer)
-  }, [])
-
-  // Show loading while hydrating
   if (!isHydrated) {
     return (
       <div className="flex h-screen items-center justify-center bg-slate-50">
@@ -34,8 +44,20 @@ export function ProtectedRoute({ children }: { children: React.ReactNode }) {
 }
 
 export function PublicRoute({ children }: { children: React.ReactNode }) {
-  // Public routes don't need to check auth state
-  // Users can navigate to login/register even if authenticated
-  // They can manually logout if needed
+  const isAuthenticated = useAuthStoreV2(s => s.isAuthenticated)
+  const company = useAuthStoreV2(s => s.company)
+  const isHydrated = useHydrated()
+
+  if (isHydrated && isAuthenticated) {
+    const role = company?.role
+    const dashboard =
+      role === 'OWNER' ? '/owner/dashboard' :
+      role === 'MANAGER' ? '/manager/dashboard' :
+      role === 'EMPLOYEE' ? '/employee/dashboard' :
+      role === 'CLIENT' ? '/client/dashboard' :
+      '/dashboard'
+    return <Navigate to={dashboard} replace />
+  }
+
   return <>{children}</>
 }

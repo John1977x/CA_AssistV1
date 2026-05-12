@@ -1,4 +1,5 @@
 import smtplib
+import asyncio
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from app.core.config import settings
@@ -21,6 +22,11 @@ def _send_email(to_email: str, subject: str, html_body: str):
         server.sendmail(settings.SMTP_FROM_EMAIL, to_email, msg.as_string())
 
 
+async def _send_email_async(to_email: str, subject: str, html_body: str):
+    loop = asyncio.get_event_loop()
+    await loop.run_in_executor(None, _send_email, to_email, subject, html_body)
+
+
 async def send_welcome_email(to_email: str, name: str, firm_name: str):
     subject = f"Welcome to CA Assists — {firm_name}"
     html = f"""
@@ -32,7 +38,7 @@ async def send_welcome_email(to_email: str, name: str, firm_name: str):
       <p style="color:#64748b;margin-top:24px;font-size:13px;">If you have questions, reply to this email anytime.</p>
     </div>
     """
-    _send_email(to_email, subject, html)
+    await _send_email_async(to_email, subject, html)
 
 
 async def send_invite_email(to_email: str, to_name: str, firm_name: str, token: str):
@@ -47,7 +53,7 @@ async def send_invite_email(to_email: str, to_name: str, firm_name: str, token: 
       <p style="color:#64748b;margin-top:16px;font-size:13px;">This link expires in 48 hours.</p>
     </div>
     """
-    _send_email(to_email, subject, html)
+    await _send_email_async(to_email, subject, html)
 
 
 async def send_reset_password_email(to_email: str, name: str, token: str):
@@ -62,4 +68,4 @@ async def send_reset_password_email(to_email: str, name: str, token: str):
       <p style="color:#64748b;margin-top:16px;font-size:13px;">If you didn't request this, ignore this email.</p>
     </div>
     """
-    _send_email(to_email, subject, html)
+    await _send_email_async(to_email, subject, html)

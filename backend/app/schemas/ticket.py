@@ -73,5 +73,9 @@ class PaginatedResponse(BaseModel):
     total_pages: int
 
 
+class CloseTicketRequest(BaseModel):
+    resolution: str
+
+
 class MessageResponse(BaseModel):
     message: str

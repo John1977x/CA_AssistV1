@@ -23,7 +23,7 @@ from app.core.security import (
 from app.core.config import settings
 from app.core.deps import get_current_user
 from app.models.auth import User
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timezone
 
 router = APIRouter(prefix="/auth", tags=["Authentication"])
 
@@ -195,13 +195,13 @@ async def forgot_password_endpoint(
     
     # Generate reset token
     reset_token = create_access_token(
-        data={"user_id": user.user_id, "email": user.email, "type": "reset"},
-        expires_delta=timedelta(hours=2)
+        subject=user.user_id,
+        extra={"email": user.email, "type": "reset"},
     )
-    
+
     # In production, send email with reset link
     # For now, just return success
-    
+
     return {"message": "Password reset link sent to email"}
 
 

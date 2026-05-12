@@ -185,6 +185,8 @@ class User(Base):
     status                  = Column(String(20), nullable=False, default="ACTIVE")
     invite_token            = Column(String(100))
     invite_expiry           = Column(DateTime(timezone=True))
+    reset_token             = Column(String(100))
+    reset_expiry            = Column(DateTime(timezone=True))
     notification_prefs_json = Column(JSONB)
     created_at              = Column(DateTime(timezone=True), nullable=False, server_default=func.now())
     updated_at              = Column(DateTime(timezone=True), nullable=False, server_default=func.now(), onupdate=func.now())

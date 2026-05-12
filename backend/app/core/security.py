@@ -58,7 +58,8 @@ def validate_password_strength(password: str) -> tuple[bool, str]:
 
 # ─── JWT Tokens ──────────────────────────────────────────────────────────────
 
-def create_access_token(subject: Union[str, Any], extra: dict = {}) -> str:
+def create_access_token(subject: Union[str, Any], extra: dict | None = None) -> str:
+    extra = extra or {}
     expire = datetime.now(timezone.utc) + timedelta(
         minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES
     )

@@ -69,7 +69,7 @@ api.interceptors.response.use(
         const { data } = await axios.post(`${BASE_URL}/auth/refresh`, {
           refresh_token: refreshToken,
         })
-        setTokens(data.access_token, refreshToken)
+        setTokens(data.access_token, data.refresh_token ?? refreshToken)
         processQueue(null, data.access_token)
         originalRequest.headers.Authorization = `Bearer ${data.access_token}`
         return api(originalRequest)
@@ -83,10 +83,16 @@ api.interceptors.response.use(
       }
     }
 
-    // Show error toast for non-401 errors
+    // Show error toast for non-401 errors (and non-2FA 401s)
     if (error.response?.status !== 401) {
       const detail = (error.response?.data as any)?.detail
-      if (detail && typeof detail === 'string' && detail !== '2FA_REQUIRED') {
+      if (detail && typeof detail === 'string') {
+        toast.error(detail)
+      }
+    } else {
+      const detail = (error.response?.data as any)?.detail
+      const is2FA = typeof detail === 'object' ? detail?.code === '2FA_REQUIRED' : false
+      if (!is2FA && typeof detail === 'string') {
         toast.error(detail)
       }
     }
