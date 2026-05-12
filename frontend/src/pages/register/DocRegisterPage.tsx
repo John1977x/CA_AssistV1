@@ -105,7 +105,10 @@ function RegisterModal({ open, onClose, entry, clients, employees, ownerId }: Re
       reset()
       onClose()
     },
-    onError: () => toast.error('Failed to save entry.'),
+    onError: (err: any) => {
+      const msg = err?.response?.data?.detail || 'Failed to save entry.'
+      toast.error(typeof msg === 'string' ? msg : JSON.stringify(msg))
+    },
   })
 
   return (
@@ -236,12 +239,12 @@ export default function DocRegisterPage() {
   // Pre-load clients and employees for dropdowns and table name resolution
   const { data: customersData } = useQuery({
     queryKey: ['customers-dropdown'],
-    queryFn: () => customersApi.list({ page_size: 500 }),
+    queryFn: () => customersApi.list({ page_size: 100 }),
     staleTime: 60_000,
   })
   const { data: usersData } = useQuery({
     queryKey: ['users-dropdown'],
-    queryFn: () => usersApi.list({ page_size: 500 }),
+    queryFn: () => usersApi.list({ page_size: 100 }),
     staleTime: 60_000,
   })
 
