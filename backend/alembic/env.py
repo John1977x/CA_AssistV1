@@ -19,7 +19,7 @@ from app.models.auth import (
     UserRole, Branch, User, UserLog,
 )
 from app.models.register import Register  # noqa: F401
-from app.models.leave import LeaveMaster  # noqa: F401
+from app.models.leave import LeaveMaster, LeaveApplication  # noqa: F401
 
 config = context.config
 config.set_main_option("sqlalchemy.url", settings.DATABASE_URL)

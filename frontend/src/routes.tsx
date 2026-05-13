@@ -62,6 +62,7 @@ import {
 } from '@/pages/PlaceholderPages'
 import DocRegisterPage from '@/pages/register/DocRegisterPage'
 import LeaveMasterPage from '@/pages/leave/LeaveMasterPage'
+import LeaveApplicationPage from '@/pages/leave/LeaveApplicationPage'
 
 export default function AppRoutes() {
   return (
@@ -147,6 +148,9 @@ export default function AppRoutes() {
         <Route path="/owner/leave" element={<LeaveMasterPage />} />
         <Route path="/manager/leave" element={<LeaveMasterPage />} />
         <Route path="/employee/leave" element={<LeaveMasterPage />} />
+        <Route path="/owner/leave-apply" element={<LeaveApplicationPage />} />
+        <Route path="/manager/leave-apply" element={<LeaveApplicationPage />} />
+        <Route path="/employee/leave-apply" element={<LeaveApplicationPage />} />
       </Route>
 
       <Route path="*" element={<NotFoundPage />} />

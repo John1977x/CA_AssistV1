@@ -53,7 +53,8 @@ const OWNER_NAV_GROUPS = [
   {
     label: 'Admin',
     items: [
-      { to: '/owner/leave', icon: Clock, label: 'Leave' },
+      { to: '/owner/leave', icon: Clock, label: 'Leave Master' },
+      { to: '/owner/leave-apply', icon: Calendar, label: 'Leave Applications' },
       { to: '/owner/subscription', icon: CreditCard, label: 'Subscription' },
       { to: '/profile', icon: User, label: 'Profile' },
     ],
@@ -96,7 +97,8 @@ const MANAGER_NAV_GROUPS = [
   {
     label: 'Admin',
     items: [
-      { to: '/manager/leave', icon: Clock, label: 'Leave' },
+      { to: '/manager/leave', icon: Clock, label: 'Leave Master' },
+      { to: '/manager/leave-apply', icon: Calendar, label: 'Leave Applications' },
       { to: '/manager/subscription', icon: CreditCard, label: 'Subscription' },
       { to: '/profile', icon: User, label: 'Profile' },
     ],
@@ -135,7 +137,8 @@ const EMPLOYEE_NAV_GROUPS = [
   {
     label: 'Admin',
     items: [
-      { to: '/employee/leave', icon: Clock, label: 'Leave' },
+      { to: '/employee/leave', icon: Clock, label: 'Leave Master' },
+      { to: '/employee/leave-apply', icon: Calendar, label: 'Leave Applications' },
       { to: '/profile', icon: User, label: 'Profile' },
     ],
   },
