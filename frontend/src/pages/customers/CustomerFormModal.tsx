@@ -117,7 +117,7 @@ export default function CustomerFormModal({ open, onClose, customer }: Props) {
     <Modal
       open={open}
       onClose={onClose}
-      title={isEdit ? 'Edit Customer' : 'Add New Customer'}
+      title={isEdit ? 'Edit Client' : 'Add New Client'}
       subtitle={isEdit ? `Editing ${customer?.display_name}` : 'Fill in the details to add a new client'}
       size="lg"
     >
