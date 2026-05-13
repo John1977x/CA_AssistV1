@@ -1,5 +1,6 @@
 import { Navigate, useLocation } from 'react-router-dom'
 import { useAuthStoreV2 } from '@/store/authStoreV2'
+import { getAccessToken } from '@/api/client'
 import { useEffect, useState } from 'react'
 
 function useHydrated() {
@@ -23,6 +24,7 @@ export function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const isAuthenticated = useAuthStoreV2(s => s.isAuthenticated)
   const location = useLocation()
   const isHydrated = useHydrated()
+  const hasAccessToken = !!getAccessToken()
 
   if (!isHydrated) {
     return (
@@ -37,7 +39,13 @@ export function ProtectedRoute({ children }: { children: React.ReactNode }) {
     )
   }
 
-  if (!isAuthenticated) {
+  // If authenticated but no token, logout and redirect
+  if (isAuthenticated && !hasAccessToken) {
+    useAuthStoreV2.getState().logout()
+    return <Navigate to="/login" state={{ from: location }} replace />
+  }
+
+  if (!isAuthenticated || !hasAccessToken) {
     return <Navigate to="/login" state={{ from: location }} replace />
   }
   return <>{children}</>
@@ -47,9 +55,11 @@ export function PublicRoute({ children }: { children: React.ReactNode }) {
   const isAuthenticated = useAuthStoreV2(s => s.isAuthenticated)
   const company = useAuthStoreV2(s => s.company)
   const isHydrated = useHydrated()
+  const hasAccessToken = !!getAccessToken()
 
-  if (isHydrated && isAuthenticated) {
-    const role = company?.role
+  // If authenticated with valid token and company info, redirect to dashboard
+  if (isHydrated && isAuthenticated && hasAccessToken && company) {
+    const role = company.role
     const dashboard =
       role === 'OWNER' ? '/owner/dashboard' :
       role === 'MANAGER' ? '/manager/dashboard' :
@@ -57,6 +67,11 @@ export function PublicRoute({ children }: { children: React.ReactNode }) {
       role === 'CLIENT' ? '/client/dashboard' :
       '/dashboard'
     return <Navigate to={dashboard} replace />
+  }
+
+  // If authenticated but no token, logout
+  if (isAuthenticated && !hasAccessToken) {
+    useAuthStoreV2.getState().logout()
   }
 
   return <>{children}</>

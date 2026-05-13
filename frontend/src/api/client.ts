@@ -1,5 +1,6 @@
 import axios, { AxiosError, InternalAxiosRequestConfig } from 'axios'
 import toast from 'react-hot-toast'
+import { useAuthStoreV2 } from '@/store/authStoreV2'
 
 const BASE_URL = '/api/v1'
 
@@ -60,7 +61,7 @@ api.interceptors.response.use(
 
       const refreshToken = getRefreshToken()
       if (!refreshToken) {
-        clearTokens()
+        useAuthStoreV2.getState().logout()
         window.location.href = '/login'
         return Promise.reject(error)
       }
@@ -75,7 +76,7 @@ api.interceptors.response.use(
         return api(originalRequest)
       } catch (refreshError) {
         processQueue(refreshError, null)
-        clearTokens()
+        useAuthStoreV2.getState().logout()
         window.location.href = '/login'
         return Promise.reject(refreshError)
       } finally {
