@@ -1,8 +1,10 @@
 from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing import Optional
 
 from app.core.deps import get_db, get_current_user
+from app.core.security import decode_token
 from app.models.auth import User, UserRole
 from app.models.company_v2 import CompanyUser, CompanyRole
 from sqlalchemy import select
@@ -12,6 +14,19 @@ from app.schemas.leave import (
 from app.services import leave as leave_svc
 
 router = APIRouter(prefix="/leave-master", tags=["leave-master"])
+_bearer = HTTPBearer(auto_error=False)
+
+
+def _get_jwt_role(
+    credentials: Optional[HTTPAuthorizationCredentials] = Depends(_bearer),
+) -> Optional[str]:
+    """Extract role claim from JWT without a DB hit."""
+    if not credentials:
+        return None
+    try:
+        return decode_token(credentials.credentials).get("role")
+    except Exception:
+        return None
 
 
 async def _resolve_role(db: AsyncSession, user: User) -> Optional[str]:
@@ -19,18 +34,18 @@ async def _resolve_role(db: AsyncSession, user: User) -> Optional[str]:
     if user.is_owner:
         return "OWNER"
 
-    # Check V2 CompanyUser table
+    # Check V2 CompanyUser table — treat NULL is_deleted same as False
     result = await db.execute(
         select(CompanyRole.role_name)
         .select_from(CompanyUser)
         .join(CompanyRole, CompanyUser.role_id == CompanyRole.role_id)
-        .where(CompanyUser.user_id == user.user_id, CompanyUser.is_deleted == False)
+        .where(CompanyUser.user_id == user.user_id, CompanyUser.is_deleted.isnot(True))
         .order_by(CompanyUser.created_at.desc())
         .limit(1)
     )
     role = result.scalar_one_or_none()
     if role:
-        return role
+        return role.upper()
 
     # Fall back to legacy UserRole table
     if user.role_id:
@@ -44,10 +59,13 @@ async def _resolve_role(db: AsyncSession, user: User) -> Optional[str]:
     return None
 
 
-async def _require_owner_or_manager(db: AsyncSession, user: User) -> None:
+async def _require_staff(
+    db: AsyncSession, user: User, jwt_role: Optional[str] = None,
+) -> None:
     role = await _resolve_role(db, user)
-    if role not in ("OWNER", "MANAGER"):
-        raise HTTPException(status_code=403, detail="Only owners and managers can manage leave masters.")
+    effective = role or (jwt_role.upper() if jwt_role else None)
+    if effective not in ("OWNER", "MANAGER", "EMPLOYEE"):
+        raise HTTPException(status_code=403, detail="Only firm staff can manage leave masters.")
 
 
 @router.get("", response_model=PaginatedLeaveMasters)
@@ -72,8 +90,9 @@ async def create_leave_master(
     data: LeaveMasterCreate,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
+    jwt_role: Optional[str] = Depends(_get_jwt_role),
 ):
-    await _require_owner_or_manager(db, current_user)
+    await _require_staff(db, current_user, jwt_role)
     return await leave_svc.create_leave_master(db, current_user.tenant_id, data)
 
 
@@ -92,8 +111,9 @@ async def update_leave_master(
     data: LeaveMasterUpdate,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
+    jwt_role: Optional[str] = Depends(_get_jwt_role),
 ):
-    await _require_owner_or_manager(db, current_user)
+    await _require_staff(db, current_user, jwt_role)
     return await leave_svc.update_leave_master(db, current_user.tenant_id, leave_master_id, data)
 
 
@@ -102,6 +122,7 @@ async def delete_leave_master(
     leave_master_id: int,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
+    jwt_role: Optional[str] = Depends(_get_jwt_role),
 ):
-    await _require_owner_or_manager(db, current_user)
+    await _require_staff(db, current_user, jwt_role)
     await leave_svc.delete_leave_master(db, current_user.tenant_id, leave_master_id)
