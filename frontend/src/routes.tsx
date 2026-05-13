@@ -146,6 +146,7 @@ export default function AppRoutes() {
         <Route path="/doc-register" element={<DocRegisterPage />} />
         <Route path="/owner/leave" element={<LeaveMasterPage />} />
         <Route path="/manager/leave" element={<LeaveMasterPage />} />
+        <Route path="/employee/leave" element={<LeaveMasterPage />} />
       </Route>
 
       <Route path="*" element={<NotFoundPage />} />

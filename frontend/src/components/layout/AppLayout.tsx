@@ -132,6 +132,13 @@ const EMPLOYEE_NAV_GROUPS = [
       { to: '/employee/assignments', icon: BookOpen, label: 'Assignments' },
     ],
   },
+  {
+    label: 'Admin',
+    items: [
+      { to: '/employee/leave', icon: Clock, label: 'Leave' },
+      { to: '/profile', icon: User, label: 'Profile' },
+    ],
+  },
 ]
 
 // Client Navigation
