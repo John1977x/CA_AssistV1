@@ -1,8 +1,5 @@
 import api from './client'
-import axios from 'axios'
 import type { LoginResponse, UserProfile, CompanyInfo } from '@/store/authStoreV2'
-
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
 
 export interface OwnerRegisterRequest {
   first_name: string
@@ -33,21 +30,19 @@ export interface LoginRequest {
 export const authV2Api = {
   // Owner Registration
   registerOwner: async (data: OwnerRegisterRequest): Promise<OwnerRegisterResponse> => {
-    const response = await axios.post(`${API_URL}/api/v1/auth/register-owner`, data)
+    const response = await api.post('/auth/register-owner', data)
     return response.data
   },
 
   // Login
   login: async (data: LoginRequest): Promise<LoginResponse> => {
-    const response = await axios.post(`${API_URL}/api/v1/auth/login`, data)
+    const response = await api.post('/auth/login', data)
     return response.data
   },
 
   // Refresh Token
   refreshToken: async (refreshToken: string) => {
-    const response = await axios.post(`${API_URL}/api/v1/auth/refresh`, {
-      refresh_token: refreshToken,
-    })
+    const response = await api.post('/auth/refresh', { refresh_token: refreshToken })
     return response.data
   },
 
@@ -75,9 +70,7 @@ export const authV2Api = {
 
   // Forgot Password
   forgotPassword: async (email: string) => {
-    const response = await axios.post(`${API_URL}/api/v1/auth/forgot-password`, {
-      email,
-    })
+    const response = await api.post('/auth/forgot-password', { email })
     return response.data
   },
 
@@ -87,7 +80,7 @@ export const authV2Api = {
     new_password: string
     confirm_password: string
   }) => {
-    const response = await axios.post(`${API_URL}/api/v1/auth/reset-password`, data)
+    const response = await api.post('/auth/reset-password', data)
     return response.data
   },
 
