@@ -106,10 +106,13 @@ export default function CustomerFormModal({ open, onClose, customer }: Props) {
         : customersApi.create(payload as any)
     },
     onSuccess: () => {
-      toast.success(isEdit ? 'Customer updated.' : 'Customer added.')
+      toast.success(isEdit ? 'Client updated.' : 'Client added.')
       qc.invalidateQueries({ queryKey: ['customers'] })
       qc.invalidateQueries({ queryKey: ['customer-stats'] })
       onClose()
+    },
+    onError: (err: any) => {
+      toast.error(err?.response?.data?.detail || 'Failed to save client.')
     },
   })
 
@@ -228,7 +231,7 @@ export default function CustomerFormModal({ open, onClose, customer }: Props) {
           <button type="submit" disabled={mutation.isPending} className="btn-primary flex-1">
             {mutation.isPending
               ? <><Loader2 size={14} className="animate-spin" /> Saving...</>
-              : isEdit ? 'Save Changes' : 'Add Customer'
+              : isEdit ? 'Save Changes' : 'Add Client'
             }
           </button>
         </div>
