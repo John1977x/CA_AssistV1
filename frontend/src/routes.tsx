@@ -61,6 +61,7 @@ import {
   RolesPage, SettingsPage, ProfilePage, SecurityPage, NotFoundPage,
 } from '@/pages/PlaceholderPages'
 import DocRegisterPage from '@/pages/register/DocRegisterPage'
+import LeaveMasterPage from '@/pages/leave/LeaveMasterPage'
 
 export default function AppRoutes() {
   return (
@@ -143,6 +144,8 @@ export default function AppRoutes() {
         <Route path="/profile" element={<ProfilePage />} />
         <Route path="/security" element={<SecurityPage />} />
         <Route path="/doc-register" element={<DocRegisterPage />} />
+        <Route path="/owner/leave" element={<LeaveMasterPage />} />
+        <Route path="/manager/leave" element={<LeaveMasterPage />} />
       </Route>
 
       <Route path="*" element={<NotFoundPage />} />
