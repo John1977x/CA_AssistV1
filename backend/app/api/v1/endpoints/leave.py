@@ -3,7 +3,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from typing import Optional
 
 from app.core.deps import get_db, get_current_user
-from app.models.auth import User
+from app.models.auth import User, UserRole
 from app.models.company_v2 import CompanyUser, CompanyRole
 from sqlalchemy import select
 from app.schemas.leave import (
@@ -14,20 +14,38 @@ from app.services import leave as leave_svc
 router = APIRouter(prefix="/leave-master", tags=["leave-master"])
 
 
-async def _get_role(db: AsyncSession, user_id: int) -> Optional[str]:
+async def _resolve_role(db: AsyncSession, user: User) -> Optional[str]:
+    """Return the user's role name, checking CompanyUser first then legacy UserRole."""
+    if user.is_owner:
+        return "OWNER"
+
+    # Check V2 CompanyUser table
     result = await db.execute(
         select(CompanyRole.role_name)
         .select_from(CompanyUser)
         .join(CompanyRole, CompanyUser.role_id == CompanyRole.role_id)
-        .where(CompanyUser.user_id == user_id, CompanyUser.is_deleted == False)
+        .where(CompanyUser.user_id == user.user_id, CompanyUser.is_deleted == False)
         .order_by(CompanyUser.created_at.desc())
         .limit(1)
     )
-    return result.scalar_one_or_none()
+    role = result.scalar_one_or_none()
+    if role:
+        return role
+
+    # Fall back to legacy UserRole table
+    if user.role_id:
+        lr = await db.execute(
+            select(UserRole.role_code).where(UserRole.role_id == user.role_id)
+        )
+        code = lr.scalar_one_or_none()
+        if code:
+            return code.upper()
+
+    return None
 
 
 async def _require_owner_or_manager(db: AsyncSession, user: User) -> None:
-    role = await _get_role(db, user.user_id)
+    role = await _resolve_role(db, user)
     if role not in ("OWNER", "MANAGER"):
         raise HTTPException(status_code=403, detail="Only owners and managers can manage leave masters.")
 
