@@ -41,7 +41,7 @@ class ComplianceBase(BaseModel):
 
 class ComplianceCreate(ComplianceBase):
     """Create compliance request"""
-    customer_id: UUID
+    customer_id: int
 
 
 class ComplianceUpdate(BaseModel):
@@ -79,11 +79,11 @@ class ComplianceUpdate(BaseModel):
 
 class ComplianceResponse(ComplianceBase):
     """Compliance response"""
-    compliance_id: UUID
-    tenant_id: UUID
-    customer_id: UUID
-    created_by_user_id: Optional[UUID] = None
-    updated_by_user_id: Optional[UUID] = None
+    compliance_id: int
+    tenant_id: int
+    customer_id: int
+    created_by_user_id: Optional[int] = None
+    updated_by_user_id: Optional[int] = None
     created_at: datetime
     updated_at: datetime
     is_deleted: bool
@@ -109,10 +109,10 @@ class ComplianceTaskBase(BaseModel):
 
 class ComplianceTaskCreate(ComplianceTaskBase):
     """Create compliance task request"""
-    compliance_id: UUID
-    task_id: UUID
-    assigned_to_user_id: UUID
-    assigned_by_user_id: Optional[UUID] = None
+    compliance_id: int
+    task_id: int
+    assigned_to_user_id: int
+    assigned_by_user_id: Optional[int] = None
 
 
 class ComplianceTaskUpdate(BaseModel):
@@ -130,15 +130,15 @@ class ComplianceTaskUpdate(BaseModel):
 
 class ComplianceTaskResponse(ComplianceTaskBase):
     """Compliance task response"""
-    compliance_task_id: UUID
-    compliance_id: UUID
-    task_id: UUID
-    tenant_id: UUID
-    assigned_to_user_id: UUID
-    assigned_by_user_id: Optional[UUID] = None
+    compliance_task_id: int
+    compliance_id: int
+    task_id: int
+    tenant_id: int
+    assigned_to_user_id: int
+    assigned_by_user_id: Optional[int] = None
     assigned_date: date
     completed_date: Optional[date] = None
-    reviewed_by_user_id: Optional[UUID] = None
+    reviewed_by_user_id: Optional[int] = None
     reviewed_date: Optional[date] = None
     created_at: datetime
     updated_at: datetime
@@ -152,14 +152,14 @@ class ComplianceTaskResponse(ComplianceTaskBase):
 
 class ComplianceHistoryResponse(BaseModel):
     """Compliance history response"""
-    history_id: UUID
-    compliance_id: UUID
-    tenant_id: UUID
+    history_id: int
+    compliance_id: int
+    tenant_id: int
     action: str
     field_name: Optional[str] = None
     old_value: Optional[str] = None
     new_value: Optional[str] = None
-    changed_by_user_id: Optional[UUID] = None
+    changed_by_user_id: Optional[int] = None
     change_reason: Optional[str] = None
     created_at: datetime
 
@@ -180,7 +180,7 @@ class ComplianceReminderBase(BaseModel):
 
 class ComplianceReminderCreate(ComplianceReminderBase):
     """Create compliance reminder request"""
-    compliance_id: UUID
+    compliance_id: int
 
 
 class ComplianceReminderUpdate(BaseModel):
@@ -195,9 +195,9 @@ class ComplianceReminderUpdate(BaseModel):
 
 class ComplianceReminderResponse(ComplianceReminderBase):
     """Compliance reminder response"""
-    reminder_id: UUID
-    compliance_id: UUID
-    tenant_id: UUID
+    reminder_id: int
+    compliance_id: int
+    tenant_id: int
     status: str
     sent_at: Optional[datetime] = None
     acknowledged_at: Optional[datetime] = None

@@ -1,7 +1,6 @@
 from sqlalchemy.orm import Session
 from sqlalchemy import and_, or_, desc
 from typing import List, Optional
-from uuid import UUID
 from datetime import date, datetime, timedelta
 
 from app.models.compliance import Compliance, ComplianceTask, ComplianceHistory, ComplianceReminder
@@ -17,7 +16,7 @@ class ComplianceService:
     """Service for compliance operations"""
 
     @staticmethod
-    def create_compliance(db: Session, tenant_id: UUID, compliance_data: ComplianceCreate, user_id: UUID) -> Compliance:
+    def create_compliance(db: Session, tenant_id: int, compliance_data: ComplianceCreate, user_id: int) -> Compliance:
         """Create a new compliance record"""
         compliance = Compliance(
             tenant_id=tenant_id,
@@ -67,7 +66,7 @@ class ComplianceService:
         return compliance
 
     @staticmethod
-    def get_compliance(db: Session, tenant_id: UUID, compliance_id: UUID) -> Optional[Compliance]:
+    def get_compliance(db: Session, tenant_id: int, compliance_id: int) -> Optional[Compliance]:
         """Get compliance by ID"""
         return db.query(Compliance).filter(
             and_(
@@ -78,7 +77,7 @@ class ComplianceService:
         ).first()
 
     @staticmethod
-    def get_customer_compliances(db: Session, tenant_id: UUID, customer_id: UUID) -> List[Compliance]:
+    def get_customer_compliances(db: Session, tenant_id: int, customer_id: int) -> List[Compliance]:
         """Get all compliances for a customer"""
         return db.query(Compliance).filter(
             and_(
@@ -89,7 +88,7 @@ class ComplianceService:
         ).order_by(desc(Compliance.created_at)).all()
 
     @staticmethod
-    def get_tenant_compliances(db: Session, tenant_id: UUID, skip: int = 0, limit: int = 100) -> List[Compliance]:
+    def get_tenant_compliances(db: Session, tenant_id: int, skip: int = 0, limit: int = 100) -> List[Compliance]:
         """Get all compliances for a tenant"""
         return db.query(Compliance).filter(
             and_(
@@ -99,8 +98,8 @@ class ComplianceService:
         ).order_by(desc(Compliance.created_at)).offset(skip).limit(limit).all()
 
     @staticmethod
-    def update_compliance(db: Session, tenant_id: UUID, compliance_id: UUID, 
-                         compliance_data: ComplianceUpdate, user_id: UUID) -> Optional[Compliance]:
+    def update_compliance(db: Session, tenant_id: int, compliance_id: int, 
+                         compliance_data: ComplianceUpdate, user_id: int) -> Optional[Compliance]:
         """Update compliance record"""
         compliance = ComplianceService.get_compliance(db, tenant_id, compliance_id)
         if not compliance:
@@ -126,7 +125,7 @@ class ComplianceService:
         return compliance
 
     @staticmethod
-    def delete_compliance(db: Session, tenant_id: UUID, compliance_id: UUID, user_id: UUID) -> bool:
+    def delete_compliance(db: Session, tenant_id: int, compliance_id: int, user_id: int) -> bool:
         """Soft delete compliance record"""
         compliance = ComplianceService.get_compliance(db, tenant_id, compliance_id)
         if not compliance:
@@ -144,7 +143,7 @@ class ComplianceService:
         return True
 
     @staticmethod
-    def get_compliance_summary(db: Session, tenant_id: UUID) -> dict:
+    def get_compliance_summary(db: Session, tenant_id: int) -> dict:
         """Get compliance summary for dashboard"""
         compliances = db.query(Compliance).filter(
             and_(
@@ -174,9 +173,9 @@ class ComplianceService:
         }
 
     @staticmethod
-    def log_history(db: Session, tenant_id: UUID, compliance_id: UUID, action: str,
+    def log_history(db: Session, tenant_id: int, compliance_id: int, action: str,
                    field_name: Optional[str], old_value: Optional[str], 
-                   user_id: UUID, change_reason: Optional[str] = None) -> ComplianceHistory:
+                   user_id: int, change_reason: Optional[str] = None) -> ComplianceHistory:
         """Log compliance change in history"""
         history = ComplianceHistory(
             compliance_id=compliance_id,
@@ -198,8 +197,8 @@ class ComplianceTaskService:
     """Service for compliance task operations"""
 
     @staticmethod
-    def create_compliance_task(db: Session, tenant_id: UUID, task_data: ComplianceTaskCreate, 
-                              user_id: UUID) -> ComplianceTask:
+    def create_compliance_task(db: Session, tenant_id: int, task_data: ComplianceTaskCreate, 
+                              user_id: int) -> ComplianceTask:
         """Create a new compliance task"""
         compliance_task = ComplianceTask(
             compliance_id=task_data.compliance_id,
@@ -222,7 +221,7 @@ class ComplianceTaskService:
         return compliance_task
 
     @staticmethod
-    def get_compliance_task(db: Session, tenant_id: UUID, compliance_task_id: UUID) -> Optional[ComplianceTask]:
+    def get_compliance_task(db: Session, tenant_id: int, compliance_task_id: int) -> Optional[ComplianceTask]:
         """Get compliance task by ID"""
         return db.query(ComplianceTask).filter(
             and_(
@@ -233,7 +232,7 @@ class ComplianceTaskService:
         ).first()
 
     @staticmethod
-    def get_compliance_tasks(db: Session, tenant_id: UUID, compliance_id: UUID) -> List[ComplianceTask]:
+    def get_compliance_tasks(db: Session, tenant_id: int, compliance_id: int) -> List[ComplianceTask]:
         """Get all tasks for a compliance"""
         return db.query(ComplianceTask).filter(
             and_(
@@ -244,7 +243,7 @@ class ComplianceTaskService:
         ).order_by(desc(ComplianceTask.created_at)).all()
 
     @staticmethod
-    def get_employee_compliance_tasks(db: Session, tenant_id: UUID, user_id: UUID) -> List[ComplianceTask]:
+    def get_employee_compliance_tasks(db: Session, tenant_id: int, user_id: int) -> List[ComplianceTask]:
         """Get all compliance tasks assigned to an employee"""
         return db.query(ComplianceTask).filter(
             and_(
@@ -255,7 +254,7 @@ class ComplianceTaskService:
         ).order_by(desc(ComplianceTask.due_date)).all()
 
     @staticmethod
-    def update_compliance_task(db: Session, tenant_id: UUID, compliance_task_id: UUID,
+    def update_compliance_task(db: Session, tenant_id: int, compliance_task_id: int,
                               task_data: ComplianceTaskUpdate) -> Optional[ComplianceTask]:
         """Update compliance task"""
         compliance_task = ComplianceTaskService.get_compliance_task(db, tenant_id, compliance_task_id)
@@ -272,7 +271,7 @@ class ComplianceTaskService:
         return compliance_task
 
     @staticmethod
-    def submit_compliance_task(db: Session, tenant_id: UUID, compliance_task_id: UUID,
+    def submit_compliance_task(db: Session, tenant_id: int, compliance_task_id: int,
                               documents: Optional[dict] = None) -> Optional[ComplianceTask]:
         """Submit compliance task with documents"""
         compliance_task = ComplianceTaskService.get_compliance_task(db, tenant_id, compliance_task_id)
@@ -287,8 +286,8 @@ class ComplianceTaskService:
         return compliance_task
 
     @staticmethod
-    def approve_compliance_task(db: Session, tenant_id: UUID, compliance_task_id: UUID,
-                               reviewer_id: UUID, comments: Optional[str] = None) -> Optional[ComplianceTask]:
+    def approve_compliance_task(db: Session, tenant_id: int, compliance_task_id: int,
+                               reviewer_id: int, comments: Optional[str] = None) -> Optional[ComplianceTask]:
         """Approve compliance task"""
         compliance_task = ComplianceTaskService.get_compliance_task(db, tenant_id, compliance_task_id)
         if not compliance_task:
@@ -303,8 +302,8 @@ class ComplianceTaskService:
         return compliance_task
 
     @staticmethod
-    def reject_compliance_task(db: Session, tenant_id: UUID, compliance_task_id: UUID,
-                              reviewer_id: UUID, comments: Optional[str] = None) -> Optional[ComplianceTask]:
+    def reject_compliance_task(db: Session, tenant_id: int, compliance_task_id: int,
+                              reviewer_id: int, comments: Optional[str] = None) -> Optional[ComplianceTask]:
         """Reject compliance task"""
         compliance_task = ComplianceTaskService.get_compliance_task(db, tenant_id, compliance_task_id)
         if not compliance_task:
@@ -319,7 +318,7 @@ class ComplianceTaskService:
         return compliance_task
 
     @staticmethod
-    def get_compliance_task_summary(db: Session, tenant_id: UUID) -> dict:
+    def get_compliance_task_summary(db: Session, tenant_id: int) -> dict:
         """Get compliance task summary"""
         tasks = db.query(ComplianceTask).filter(
             and_(
@@ -354,7 +353,7 @@ class ComplianceReminderService:
     """Service for compliance reminder operations"""
 
     @staticmethod
-    def create_reminder(db: Session, tenant_id: UUID, reminder_data: ComplianceReminderCreate) -> ComplianceReminder:
+    def create_reminder(db: Session, tenant_id: int, reminder_data: ComplianceReminderCreate) -> ComplianceReminder:
         """Create a new compliance reminder"""
         reminder = ComplianceReminder(
             compliance_id=reminder_data.compliance_id,
@@ -371,7 +370,7 @@ class ComplianceReminderService:
         return reminder
 
     @staticmethod
-    def get_pending_reminders(db: Session, tenant_id: UUID) -> List[ComplianceReminder]:
+    def get_pending_reminders(db: Session, tenant_id: int) -> List[ComplianceReminder]:
         """Get all pending reminders for today"""
         today = date.today()
         return db.query(ComplianceReminder).filter(
@@ -383,7 +382,7 @@ class ComplianceReminderService:
         ).all()
 
     @staticmethod
-    def mark_reminder_sent(db: Session, reminder_id: UUID) -> Optional[ComplianceReminder]:
+    def mark_reminder_sent(db: Session, reminder_id: int) -> Optional[ComplianceReminder]:
         """Mark reminder as sent"""
         reminder = db.query(ComplianceReminder).filter(
             ComplianceReminder.reminder_id == reminder_id
@@ -398,7 +397,7 @@ class ComplianceReminderService:
         return reminder
 
     @staticmethod
-    def acknowledge_reminder(db: Session, reminder_id: UUID) -> Optional[ComplianceReminder]:
+    def acknowledge_reminder(db: Session, reminder_id: int) -> Optional[ComplianceReminder]:
         """Acknowledge reminder"""
         reminder = db.query(ComplianceReminder).filter(
             ComplianceReminder.reminder_id == reminder_id
