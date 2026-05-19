@@ -7,6 +7,8 @@ import time
 import logging
 
 from app.core.config import settings
+from app.core.errors import AppError, ErrorSeverity
+from app.core.exception_handler import app_error_handler, validation_error_handler, generic_error_handler
 from app.api.v1.router import api_router
 from app.db.session import engine
 
@@ -52,26 +54,9 @@ async def add_process_time(request: Request, call_next):
 
 
 # ─── Exception Handlers ──────────────────────────────────────────────────────
-@app.exception_handler(RequestValidationError)
-async def validation_exception_handler(request: Request, exc: RequestValidationError):
-    errors = []
-    for error in exc.errors():
-        field = " → ".join(str(loc) for loc in error["loc"] if loc != "body")
-        errors.append({"field": field, "message": error["msg"], "type": error.get("type")})
-    logger.error(f"Validation error: {errors}")
-    return JSONResponse(
-        status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-        content={"detail": "Validation error", "errors": errors},
-    )
-
-
-@app.exception_handler(Exception)
-async def generic_exception_handler(request: Request, exc: Exception):
-    logger.error(f"Unhandled exception: {exc}", exc_info=True)
-    return JSONResponse(
-        status_code=500,
-        content={"detail": "An unexpected error occurred. Please try again."},
-    )
+app.add_exception_handler(AppError, app_error_handler)
+app.add_exception_handler(RequestValidationError, validation_error_handler)
+app.add_exception_handler(Exception, generic_error_handler)
 
 
 # ─── Routes ──────────────────────────────────────────────────────────────────

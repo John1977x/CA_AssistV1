@@ -1,6 +1,7 @@
 import axios, { AxiosError, InternalAxiosRequestConfig } from 'axios'
 import toast from 'react-hot-toast'
 import { useAuthStoreV2 } from '@/store/authStoreV2'
+import { handleApiError } from '@/utils/errorHandler'
 
 const BASE_URL = '/api/v1'
 
@@ -84,19 +85,8 @@ api.interceptors.response.use(
       }
     }
 
-    // Show error toast for non-401 errors (and non-2FA 401s)
-    if (error.response?.status !== 401) {
-      const detail = (error.response?.data as any)?.detail
-      if (detail && typeof detail === 'string') {
-        toast.error(detail)
-      }
-    } else {
-      const detail = (error.response?.data as any)?.detail
-      const is2FA = typeof detail === 'object' ? detail?.code === '2FA_REQUIRED' : false
-      if (!is2FA && typeof detail === 'string') {
-        toast.error(detail)
-      }
-    }
+    // Use centralized error handler (only shows CRITICAL and WARNING errors)
+    handleApiError(error)
 
     return Promise.reject(error)
   }

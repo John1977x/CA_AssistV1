@@ -13,6 +13,8 @@ from app.api.v1.endpoints.companies_v2 import router as companies_v2_router
 from app.api.v1.endpoints.communications import router as communications_router
 from app.api.v1.endpoints.register import router as register_router
 from app.api.v1.endpoints.compliance import router as compliance_router
+from app.api.v1.endpoints.compliance_documents import router as compliance_documents_router
+from app.api.v1.endpoints.notifications import router as notifications_router
 from app.api.v1.endpoints.leave import router as leave_router
 from app.api.v1.endpoints.leave_application import router as leave_application_router
 
@@ -35,5 +37,7 @@ api_router.include_router(subscription_router)
 api_router.include_router(communications_router, prefix="/communications", tags=["communications"])
 api_router.include_router(register_router)
 api_router.include_router(compliance_router)
+api_router.include_router(compliance_documents_router)
+api_router.include_router(notifications_router)
 api_router.include_router(leave_router)
 api_router.include_router(leave_application_router)

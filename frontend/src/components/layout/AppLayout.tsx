@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Link, useLocation, useNavigate, Outlet } from 'react-router-dom'
 import {
   LayoutDashboard, Users, Building2, UserCheck, Settings, CreditCard,
@@ -8,12 +8,14 @@ import {
   GitBranch, User, Clock, CheckSquare, Edit3,
 } from 'lucide-react'
 import { useAuthStoreV2 } from '@/store/authStoreV2'
+import { useNotificationStore } from '@/store/notificationStore'
 import { authV2Api } from '@/api/authV2'
 import toast from 'react-hot-toast'
 import clsx from 'clsx'
 import { TrialBanner } from '@/components/subscription/SubscriptionWidget'
 import { CompanyBranchInfo } from './CompanyBranchInfo'
 import { ChangeCompanyBranchModal } from './ChangeCompanyBranchModal'
+import NotificationPanel from '@/components/notifications/NotificationPanel'
 
 // Owner Navigation
 const OWNER_NAV_GROUPS = [
@@ -305,8 +307,17 @@ function SidebarContent({ onClose }: { onClose?: () => void }) {
 export default function AppLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [changeCompanyModalOpen, setChangeCompanyModalOpen] = useState(false)
+  const [notificationPanelOpen, setNotificationPanelOpen] = useState(false)
   const { pathname } = useLocation()
   const { company } = useAuthStoreV2()
+  const { unreadCount, fetchUnreadCount } = useNotificationStore()
+
+  // Fetch unread count on mount and periodically
+  useEffect(() => {
+    fetchUnreadCount()
+    const interval = setInterval(fetchUnreadCount, 30000) // Refresh every 30 seconds
+    return () => clearInterval(interval)
+  }, [fetchUnreadCount])
 
   // Get navigation based on role
   const getNavGroups = () => {
@@ -376,9 +387,15 @@ export default function AppLayout() {
             )}
             
             {/* Notification Bell */}
-            <button className="relative p-2 rounded-lg text-slate-500 hover:bg-slate-100">
+            <button
+              onClick={() => setNotificationPanelOpen(!notificationPanelOpen)}
+              className="relative p-2 rounded-lg text-slate-500 hover:bg-slate-100 transition-colors"
+              title="Notifications"
+            >
               <Bell size={18} />
-              <span className="absolute top-1.5 right-1.5 w-1.5 h-1.5 bg-red-500 rounded-full" />
+              {unreadCount > 0 && (
+                <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full animate-pulse" />
+              )}
             </button>
           </div>
         </header>
@@ -395,6 +412,12 @@ export default function AppLayout() {
       <ChangeCompanyBranchModal 
         isOpen={changeCompanyModalOpen} 
         onClose={() => setChangeCompanyModalOpen(false)} 
+      />
+
+      {/* Notification Panel */}
+      <NotificationPanel
+        isOpen={notificationPanelOpen}
+        onClose={() => setNotificationPanelOpen(false)}
       />
     </div>
   )
